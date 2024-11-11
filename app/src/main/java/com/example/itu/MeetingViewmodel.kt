@@ -16,6 +16,7 @@ import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.OffsetTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale.filter
 import kotlin.math.min
 
 data class MeetingState
@@ -25,6 +26,7 @@ data class MeetingState
     var pubData: Pub = Pub(),
     var ownerData: User = User(),
     var users: Array<User> = emptyArray<User>(),
+    var participants: Array<User> = emptyArray<User>(),
             var newTime: String = "0:0",
 //    var meetings: Array<Meeting> = emptyArray<Meeting>(),
 //    var pubs: Array<Pub> = emptyArray<Pub>()
@@ -57,25 +59,68 @@ class MeetingViewmodel : BaseViewmodel() {
         putAndFetch()
     }
 
+    fun isParticipant(user: User): Boolean
+    {
+        if(uiState.value.participants.filter { user.id == it.id }.isEmpty())
+        {
+            return false
+        }
+        return true
+    }
+
+    fun changeInviteState(user: User)
+    {
+        if(uiState.value.participants.filter { user.id == it.id }.isNotEmpty())
+        {
+            viewModelScope.launch {
+                val result = withContext(Dispatchers.IO)
+                {
+                    DeleteRequest("/meeting_participant/" + user.id + "/" + uiState.value.meetingID)
+                }
+            }
+        }
+        else
+        {
+            viewModelScope.launch {
+                val result = withContext(Dispatchers.IO)
+                {
+                    PostRequest("/meeting_participant", MeetingParticipant(user.id, uiState.value.meetingID.toString()))
+                }
+            }
+        }
+        fetchData()
+    }
+
     override fun fetchData() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                getRequest("http://192.168.0.177:5000/meeting?id=" + uiState.value.meetingID, Meeting::class, "meeting")
+                getRequest("/meeting?id=" + uiState.value.meetingID, Meeting::class, "meeting")
             }
             val pubData = withContext(Dispatchers.IO)
             {
-                getRequest("http://192.168.0.177:5000/pub?id=" + result.pub_id, Pub::class, "pub")
+                getRequest("/pub?id=" + result.pub_id, Pub::class, "pub")
             }
             val ownerData = withContext(Dispatchers.IO)
             {
-                getRequest("http://192.168.0.177:5000/user?id=" + result.owner_id, User::class, "user")
+                getRequest("/user?id=" + result.owner_id, User::class, "user")
+            }
+            val participants = withContext(Dispatchers.IO)
+            {
+                getRequest("/meeting_participant?meeting_id=" + uiState.value.meetingID, Array<User>::class, "users")
+            }
+            val users = withContext(Dispatchers.IO)
+            {
+                getRequest("/user", Array<User>::class, "users")
             }
             _uiState.update { currentState ->
                 currentState.copy(
                     meetingData = result,
                     pubData = pubData,
-                    ownerData = ownerData
+                    ownerData = ownerData,
+                    participants = participants,
+                    users = users
+
                 )
             }
         }
@@ -86,7 +131,7 @@ class MeetingViewmodel : BaseViewmodel() {
             val ownerData = withContext(Dispatchers.IO)
             {
                 PutRequest(
-                    "http://192.168.0.177:5000/meeting/" + uiState.value.meetingID,
+                    "/meeting/" + uiState.value.meetingID,
                     uiState.value.meetingData
                 )
                 fetchData()
@@ -95,6 +140,7 @@ class MeetingViewmodel : BaseViewmodel() {
 
         }
     }
+
     fun setMeetingID(id: Int)
     {
         uiState.value.meetingID = id

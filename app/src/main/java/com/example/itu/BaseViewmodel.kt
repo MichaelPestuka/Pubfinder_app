@@ -15,13 +15,15 @@ import kotlin.reflect.KClass
 
 abstract class BaseViewmodel : ViewModel() {
 
+    val apiUrl: String = "http://192.168.0.177:5000"
+
     abstract fun fetchData()
 
     protected fun <T: Any> getRequest(url: String, resultClass: KClass<T>, dataName: String, getArray: Boolean = false): T {
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
 
         if (connection.responseCode != 200) {
-            Log.d("Response: ", connection.responseCode.toString())
+            Log.d("Response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
             return resultClass.java.newInstance()
         }
         val inputSystem = connection.inputStream
@@ -41,7 +43,7 @@ abstract class BaseViewmodel : ViewModel() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                val connection = URL(url).openConnection() as HttpURLConnection
+                val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-type", "application/json; charset=utf-8")
                 val serializedObject = Gson().toJson(sentObject)
@@ -52,7 +54,7 @@ abstract class BaseViewmodel : ViewModel() {
     }
     suspend fun <T: Any> PutRequest(url: String, sentObject: T) {
 
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "PUT"
         connection.setRequestProperty("Content-type", "application/json; charset=utf-8")
         val serializedObject = Gson().toJson(sentObject)
@@ -60,5 +62,11 @@ abstract class BaseViewmodel : ViewModel() {
         Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
 
 
+    }
+    suspend fun DeleteRequest(url: String) {
+
+        val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
+        connection.requestMethod = "DELETE"
+        Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
     }
 }

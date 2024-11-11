@@ -51,7 +51,7 @@ class HomeViewModel : BaseViewmodel() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                getRequest("http://192.168.0.177:5000/user", Array<User>::class, "users")
+                getRequest("/user", Array<User>::class, "users")
 
             }
             _uiState.update { currentState ->
@@ -66,7 +66,7 @@ class HomeViewModel : BaseViewmodel() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                getRequest("http://192.168.0.177:5000/meeting", Array<Meeting>::class, "meetings")
+                getRequest("/meeting", Array<Meeting>::class, "meetings")
             }
             _uiState.update { currentState ->
                 currentState.copy(
@@ -80,7 +80,7 @@ class HomeViewModel : BaseViewmodel() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                getRequest("http://192.168.0.177:5000/pub", Array<Pub>::class, "pubs")
+                getRequest("/pub", Array<Pub>::class, "pubs")
             }
             _uiState.update { currentState ->
                 currentState.copy(

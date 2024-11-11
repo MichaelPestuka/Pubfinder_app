@@ -63,12 +63,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         Row(modifier = Modifier.padding(bottom = 20.dp))
                         {
-                            Greeting(
-                                name = "aaa",
 
-                                viewModel = viewModel,
-                                applicationContext = applicationContext
-                            )
                             Button(
                                 onClick = {
                                     Log.d("Clicked: ", "Yes...")
@@ -76,10 +71,11 @@ class MainActivity : ComponentActivity() {
                                         it.putExtra("ExistingMeetingID", 1)
                                         startActivity(it)
                                     }
-                                }
+                                },
+                                modifier = Modifier.height(48.dp)
                             )
                             {
-                                Text("Move tto")
+                                Text("New Meeting")
                             }
                         }
                     },
@@ -133,7 +129,7 @@ fun UserList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMeetin
                  })
             {
 
-                Text(text = meeting.id, Modifier.padding(4.dp))
+                Text(text = meeting.begin, Modifier.padding(4.dp))
                 Text(text = "Organizer: " + viewModel.GetUserByID(meeting.owner_id).username, modifier.padding(4.dp))
                 Text(text = "Where: " + viewModel.GetPubByID(meeting.pub_id).name, modifier.padding(4.dp))
             }
@@ -142,25 +138,6 @@ fun UserList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMeetin
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier, viewModel: HomeViewModel, applicationContext: Context) {
-    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    Column() {
-
-
-        Button(
-            onClick = {
-                        val meet = uiState.value.meetings.first()
-                        meet.owner_id = Random.nextInt(1, 20).toString()
-//                        viewModel.PutRequest("http://192.168.0.177:5000/meeting/" + "1", meet)
-            }
-        )
-        {
-            Text("Update")
-        }
-
-    }
-}
 
 
 

@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -59,8 +61,8 @@ class MeetingActivity : ComponentActivity() {
             ITUTheme {
                 Column()
                 {
-                    Text(text = "HOYA HEYA")
-                    meeetingEditor(viewModel = viewModel)
+                    Text(text = "Edit Meeting")
+                    MeeetingEditor(viewModel = viewModel)
                 }
 
             }
@@ -70,7 +72,7 @@ class MeetingActivity : ComponentActivity() {
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun meeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
+fun MeeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     Card()
@@ -92,5 +94,31 @@ fun meeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     TimeInput(state = timeState)
     Button(onClick = {viewModel.changeTime(timeState.hour, timeState.minute)}) { Text(text = "Change Start") }
     Button(onClick = {viewModel.changeTime(timeState.hour, timeState.minute, which = "end")}) { Text(text = "Change End") }
+    Userselector(viewModel = viewModel)
+}
+
+@Composable
+fun Userselector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
+{
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    Card(modifier = modifier)
+    {
+        Text("Participants: ")
+        LazyColumn()
+        {
+            items(uiState.value.users)
+            { user ->
+                Card(Modifier.clickable {})
+                {
+                    Row()
+                    {
+                        Text(text = user.username, Modifier.padding(4.dp))
+                        Checkbox(checked = viewModel.isParticipant(user), onCheckedChange = {viewModel.changeInviteState(user)})
+                    }
+                }
+            }
+
+        }
+    }
 }
 
