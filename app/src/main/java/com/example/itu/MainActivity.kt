@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,8 +21,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -33,10 +36,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
 
     val viewModel: HomeViewModel by viewModels()
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
 
@@ -54,33 +59,40 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             ITUTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column()
-                    {
-                        Greeting(
-                            name = "aaa",
-                            modifier = Modifier.padding(innerPadding),
-                            viewModel = viewModel,
-                            applicationContext = applicationContext
-                        )
-                        UserList(viewModel = viewModel)
-                        Button(
-                            onClick = {
-                                Log.d("Clicked: ", "Yes...")
-//                                val intent = Intent(applicationContext, MainActivity::class.java)
-//                                startActivity(applicationContext, intent, null)
-//                                Intent(Intent.ACTION_MAIN).also{
-//                                    it.`package` = "com.google.android.youtube"
-//                                    startActivity(it)
-//                                }
-                                Intent(applicationContext, MeetingActivity::class.java).also{
-                                    startActivity(it)
+                Scaffold(
+                    bottomBar = {
+                        Row(modifier = Modifier.padding(bottom = 20.dp))
+                        {
+                            Greeting(
+                                name = "aaa",
+
+                                viewModel = viewModel,
+                                applicationContext = applicationContext
+                            )
+                            Button(
+                                onClick = {
+                                    Log.d("Clicked: ", "Yes...")
+                                    Intent(applicationContext, MeetingActivity::class.java).also {
+                                        it.putExtra("ExistingMeetingID", 1)
+                                        startActivity(it)
+                                    }
                                 }
-                            }
                             )
                             {
                                 Text("Move tto")
                             }
+                        }
+                    },
+                    topBar = {
+                        TopAppBar(
+                        title = {Text("My meetings")})
+                    },
+                    modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    Column(                            modifier = Modifier.padding(innerPadding),)
+                    {
+
+                        UserList(viewModel = viewModel, editMeetingFun = ::editMeeting)
+
                     }
                     /*
                     LazyColumn {
@@ -99,17 +111,26 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         viewModel.fetchData()
     }
+
+    fun editMeeting(id: Int)
+    {
+        Intent(applicationContext, MeetingActivity::class.java).also {
+            it.putExtra("ExistingMeetingID", id)
+            startActivity(it)
+        }
+    }
 }
 
 @Composable
-fun UserList(modifier: Modifier = Modifier, viewModel: HomeViewModel)
+fun UserList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMeetingFun: (Int) -> Unit)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     LazyColumn(Modifier.padding((16.dp)))
     {
         items(uiState.value.meetings)
         {
-            meeting -> Card(Modifier.padding(12.dp))
+            meeting -> Card(Modifier.padding(12.dp).clickable { editMeetingFun(meeting.id.toInt())
+                 })
             {
 
                 Text(text = meeting.id, Modifier.padding(4.dp))
@@ -124,12 +145,14 @@ fun UserList(modifier: Modifier = Modifier, viewModel: HomeViewModel)
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier, viewModel: HomeViewModel, applicationContext: Context) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column() {
 
 
         Button(
             onClick = {
-                        viewModel.PostRequest("http://192.168.0.177:5000/meeting", uiState.value.meetings.first())
+                        val meet = uiState.value.meetings.first()
+                        meet.owner_id = Random.nextInt(1, 20).toString()
+//                        viewModel.PutRequest("http://192.168.0.177:5000/meeting/" + "1", meet)
             }
         )
         {
