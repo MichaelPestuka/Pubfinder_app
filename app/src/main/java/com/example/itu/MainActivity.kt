@@ -1,7 +1,10 @@
 package com.example.itu
 
 import android.app.LauncherActivity.ListItem
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,38 +23,23 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat.startActivityForResult
+import androidx.core.content.ContextCompat.startActivity
 import com.example.itu.ui.theme.ITUTheme
-import com.google.gson.Gson
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
-import javax.net.ssl.HttpsURLConnection
-import kotlin.concurrent.thread
-import kotlin.reflect.KClass
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.neverEqualPolicy
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.gson.JsonObject
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-
+    val viewModel: HomeViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
-        val viewModel: HomeViewModel by viewModels()
+
+
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED)
             {
@@ -67,12 +55,33 @@ class MainActivity : ComponentActivity() {
         setContent {
             ITUTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "aaa",
-                        modifier = Modifier.padding(innerPadding),
-                        viewModel = viewModel
-                    )
-                    UserList(viewModel = viewModel)
+                    Column()
+                    {
+                        Greeting(
+                            name = "aaa",
+                            modifier = Modifier.padding(innerPadding),
+                            viewModel = viewModel,
+                            applicationContext = applicationContext
+                        )
+                        UserList(viewModel = viewModel)
+                        Button(
+                            onClick = {
+                                Log.d("Clicked: ", "Yes...")
+//                                val intent = Intent(applicationContext, MainActivity::class.java)
+//                                startActivity(applicationContext, intent, null)
+//                                Intent(Intent.ACTION_MAIN).also{
+//                                    it.`package` = "com.google.android.youtube"
+//                                    startActivity(it)
+//                                }
+                                Intent(applicationContext, MeetingActivity::class.java).also{
+                                    startActivity(it)
+                                }
+                            }
+                            )
+                            {
+                                Text("Move tto")
+                            }
+                    }
                     /*
                     LazyColumn {
                         items(people) {
@@ -84,6 +93,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.fetchData()
     }
 }
 
@@ -108,29 +122,20 @@ fun UserList(modifier: Modifier = Modifier, viewModel: HomeViewModel)
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier, viewModel: HomeViewModel) {
+fun Greeting(name: String, modifier: Modifier = Modifier, viewModel: HomeViewModel, applicationContext: Context) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
     Column(modifier = Modifier.padding(16.dp)) {
 
 
-        Text(
-            text = uiState.value.user.toString(),
-            modifier = modifier
-        )
         Button(
             onClick = {
-                        viewModel.GetUser(1)}
+                        viewModel.PostRequest("http://192.168.0.177:5000/meeting", uiState.value.meetings.first())
+            }
         )
         {
             Text("Update")
         }
-        Button(
-            onClick = {
-                viewModel.GetAllUsers()}
-        )
-        {
-            Text("Get All")
-        }
+
     }
 }
 

@@ -26,6 +26,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".MeetingActivity"
+            android:theme="@style/Theme.ITU"
+            android:label="@string/app_name"/>
+
     </application>
 
 </manifest>

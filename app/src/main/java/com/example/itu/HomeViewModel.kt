@@ -32,11 +32,15 @@ data class HomeState
 class HomeViewModel : ViewModel() {
 
     init {
-            GetAllUsers()
-        GetAllMeetings()
-        GetAllPubs()
+            fetchData()
         }
 
+    public fun fetchData()
+    {
+        GetAllUsers()
+        GetAllMeetings()
+        GetAllPubs()
+    }
 
     private val _uiState = MutableStateFlow(HomeState())
     val uiState: StateFlow<HomeState> = _uiState.asStateFlow()
@@ -135,14 +139,23 @@ class HomeViewModel : ViewModel() {
         val parsedData = Gson().fromJson(json.get(dataName), resultClass.java)
 
         Log.d("Gotten: ", parsedData.toString())
-        inputSystem.close()
+        inputStreamReader.close()
         inputSystem.close()
 
         return parsedData
     }
-    private fun <T: Any> PostRequest(url: String, sentObject: T)
+    public fun <T: Any> PostRequest(url: String, sentObject: T)
     {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO)
+            {
+                val connection = URL(url).openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-type", "application/json; charset=utf-8")
+                val serializedObject = Gson().toJson(sentObject)
+                connection.outputStream.write(serializedObject.toByteArray())
+                Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
+            }
+        }
     }
 }
