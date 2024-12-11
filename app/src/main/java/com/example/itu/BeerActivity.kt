@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.RatingBar
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +14,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -37,10 +40,17 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import kotlin.math.roundToInt
 
-class MainActivity : ComponentActivity() {
+class BeerActivity : ComponentActivity() {
 
-    val viewModel: HomeViewModel by viewModels()
+    val viewModel: BeerViewModel by viewModels()
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -60,55 +70,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             ITUTheme {
                 Scaffold(
-                    bottomBar = {
-                        Row(modifier = Modifier.padding(bottom = 20.dp))
-                        {
-
-                            Button(
-                                onClick = {
-                                    Log.d("Clicked: ", "Yes...")
-                                    Intent(applicationContext, MeetingActivity::class.java).also {
-                                        it.putExtra("ExistingMeetingID", 1)
-                                        startActivity(it)
-                                    }
-                                },
-                                modifier = Modifier.height(48.dp)
-                            )
-                            {
-                                Text("New Meeting")
-                            }
-
-                            Button(
-                                onClick = {}
-                            )
-                            {
-                                Text("Calendar")
-                            }
-
-                            Button(
-                                onClick = {
-
-                                    Log.d("Clicked: ", "Yes...")
-                                    Intent(applicationContext, BeerActivity::class.java).also {
-//                                    it.putExtra("ExistingMeetingID", 1)
-                                        startActivity(it)
-                                    }
-                                }
-                            )
-                            {
-                                Text("My Beers")
-                            }
-                        }
-                    },
                     topBar = {
                         TopAppBar(
-                        title = {Text("My meetings")})
+                            title = {Text("Beer Ratings")})
                     },
                     modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Column(                            modifier = Modifier.padding(innerPadding),)
                     {
-
-                        UserList(viewModel = viewModel, editMeetingFun = ::editMeeting)
+                        BeerRatingElement(viewModel = viewModel)
 
                     }
                     /*
@@ -129,35 +98,57 @@ class MainActivity : ComponentActivity() {
         viewModel.fetchData()
     }
 
-    fun editMeeting(id: Int)
+
+}
+
+@Composable
+fun BeerRatingElement(modifier: Modifier = Modifier, viewModel: BeerViewModel)
+{
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    LazyColumn(Modifier.padding((16.dp)))
     {
-        Intent(applicationContext, MeetingActivity::class.java).also {
-            it.putExtra("ExistingMeetingID", id)
-            startActivity(it)
+        items(uiState.value.beers)
+        { beer ->
+            Card(Modifier.padding(12.dp).fillParentMaxWidth(1.0f))
+            {
+                Row()
+                {
+                    Text(text = beer.name, Modifier.padding(4.dp))
+                    Spacer(Modifier.weight(1f))
+                    StarBar(
+                        viewModel = viewModel,
+                        beer_id = beer.id
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun UserList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMeetingFun: (Int) -> Unit)
+fun StarBar(modifier: Modifier = Modifier, viewModel: BeerViewModel, beer_id : String)
 {
-    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    LazyColumn(Modifier.padding((16.dp)))
+    val rating = viewModel.GetRating(beer_id)
+    Row()
     {
-        items(uiState.value.meetings)
+        val filled = rating.roundToInt()
+        val unfilled = 5 - filled
+        var starValue = 0.0f
+        repeat(filled)
         {
-            meeting -> Card(Modifier.padding(12.dp).clickable { editMeetingFun(meeting.id.toInt())
-                 })
-            {
-
-                Text(text = meeting.begin, Modifier.padding(4.dp))
-                Text(text = "Organizer: " + viewModel.GetUserByID(meeting.owner_id).username, modifier.padding(4.dp))
-                Text(text = "Where: " + viewModel.GetPubByID(meeting.pub_id).name, modifier.padding(4.dp))
-            }
+            starValue += 1
+            val current_value = starValue
+            Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Yellow, modifier = modifier.clickable { viewModel.SetRating(beer_id, current_value) })
         }
-
+        repeat(unfilled)
+        {
+            starValue += 1
+            val current_value = starValue
+            Icon(imageVector = Icons.Outlined.Star, contentDescription = null, tint = Color.Gray, modifier = modifier.clickable { viewModel.SetRating(beer_id, current_value)})
+        }
     }
 }
+
 
 
 
