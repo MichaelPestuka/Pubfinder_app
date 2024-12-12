@@ -43,7 +43,7 @@ abstract class BaseViewmodel : ViewModel() {
     }
     suspend fun <T: Any> PostRequest(url: String, sentObject: T)
     {
-
+        Log.d("request: ", "POST " + url)
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "POST"
         connection.setRequestProperty("Content-type", "application/json; charset=utf-8")
@@ -52,7 +52,7 @@ abstract class BaseViewmodel : ViewModel() {
         Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
     }
     suspend fun <T: Any> PutRequest(url: String, sentObject: T) {
-
+        Log.d("request: ", "PUT " + url)
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "PUT"
         connection.setRequestProperty("Content-type", "application/json; charset=utf-8")
@@ -63,7 +63,7 @@ abstract class BaseViewmodel : ViewModel() {
 
     }
     suspend fun DeleteRequest(url: String) {
-
+        Log.d("request: ", "DELETE " + url)
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "DELETE"
         Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)

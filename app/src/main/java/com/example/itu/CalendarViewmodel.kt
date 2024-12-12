@@ -57,31 +57,34 @@ class CalendarViewModel : BaseViewmodel() {
             {
                 getRequest("/timetable_item", Array<CalendarItem>::class, "timetable_items")
             }
-            FormatCalendar()
+
 
             _uiState.update { currentState ->
                 currentState.copy(
                     calendarItems = result,
+                    formattedCalendarItems = FormatCalendar(result)
                 )
             }
         }
     }
 
-    public fun FormatCalendar()
+    public fun FormatCalendar(raw: Array<CalendarItem>) : Array<FormattedCalendarItem>
     {
+        Log.d("Formatting", "Start")
         var formatted = emptyArray<FormattedCalendarItem>()
-        for(item in _uiState.value.calendarItems)
+        for(item in raw)
         {
             val start = LocalDateTime.parse(item.begin).hour + LocalDateTime.parse(item.begin).minute.toFloat() / 60
             val end = LocalDateTime.parse(item.end).hour  + LocalDateTime.parse(item.end).minute.toFloat() / 60
             val day = LocalDateTime.parse(item.begin).dayOfMonth
             formatted += FormattedCalendarItem(item.id, day, start / 24f, end / 24f, 0f)
+//            if(_uiState.value.formattedCalendarItems.filter { it.id == item.id }.isNotEmpty())
+//            {
+//                formatted.last().positionChanged = true
+//            }
         }
-        _uiState.update { currentState ->
-            currentState.copy(
-                formattedCalendarItems = formatted
-            )
-        }
+        Log.d("Formatting", "End")
+        return formatted
     }
 
     public fun GetDayItems(date: Int) : List<FormattedCalendarItem>
@@ -90,21 +93,41 @@ class CalendarViewModel : BaseViewmodel() {
         return dayItems
     }
 
-    public fun UpdateDayItem(id: String, newStart: Float = 0f, newEnd: Float = 0f)
+    public fun UpdateDayItem(id: String, newStart: Float = 0f, newEnd: Float = 0f, updateEnd: Boolean = true, updateStart: Boolean = true)
     {
-        Log.d("end", newEnd.toString())
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
                 val original = _uiState.value.calendarItems.first { it.id == id }
-//                val startMinutes = ((newStart * 24) % 1) * 60
-//                val endMinutes = ((newEnd * 24) % 1) * 60
-                var newStartTime = LocalDateTime.parse(original.begin)
-                original.begin = newStartTime.withHour((newStart * 24).toInt()).format(DateTimeFormatter.ISO_DATE_TIME)
-                var newEndTime = LocalDateTime.parse(original.end)
-                original.end = newEndTime.withHour((newEnd * 24).toInt()).format(DateTimeFormatter.ISO_DATE_TIME)
+
+
+                if(updateStart) {
+
+                    val startMinutes = (newStart * 24 - (newStart * 24).toInt()) * 60
+
+                    var newStartTime = LocalDateTime.parse(original.begin)
+
+                    original.begin = newStartTime.withHour((newStart * 24).toInt())
+                        .withMinute(startMinutes.toInt())
+                        .format(DateTimeFormatter.ISO_DATE_TIME)
+
+                }
+                if(updateEnd) {
+                    var endMinutes = (newEnd * 24 - (newEnd * 24).toInt()) * 60
+                    var endHours = newEnd * 24
+                    if(endHours >= 23.9f)
+                    {
+                        endHours = 23f
+                        endMinutes = 59f
+                    }
+                    var newEndTime = LocalDateTime.parse(original.end)
+
+                    original.end = newEndTime.withHour((endHours).toInt())
+                        .withMinute(endMinutes.toInt())
+                        .format(DateTimeFormatter.ISO_DATE_TIME)
+                }
+
                 PutRequest("/timetable_item/" + id, original)
-                Log.d("new start", original.begin)
                 GetCalendarItems()
             }
         }
@@ -122,10 +145,10 @@ class CalendarViewModel : BaseViewmodel() {
 
     public fun CreateDayItem(month: Int = 0, day: Int, start: Float, end: Float)
     {
-        Log.d("creating", "lol")
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
+                Log.d("creating", start.toString() + " to " + end.toString())
                 var startDateTime = LocalDateTime.of(2024, month, day, (start * 24).toInt(), 0).format(DateTimeFormatter.ISO_DATE_TIME)
                 var endDateTime = LocalDateTime.of(2024, month, day, (end * 24).toInt(), 0).format(DateTimeFormatter.ISO_DATE_TIME)
                 var calendarItem = CalendarItem(begin = startDateTime, end = endDateTime, user_id = _uiState.value.currentUser.id)

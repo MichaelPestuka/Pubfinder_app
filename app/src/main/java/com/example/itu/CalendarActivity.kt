@@ -3,6 +3,7 @@ package com.example.itu
 import android.app.LauncherActivity.ListItem
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources.getSystem
 import android.os.Bundle
 import android.util.Log
 import android.widget.RatingBar
@@ -54,9 +55,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.KeyboardArrowLeft
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -64,9 +69,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Dialog
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -144,57 +154,123 @@ fun MonthSelector(modifier: Modifier = Modifier, viewModel: CalendarViewModel)
 fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, day: String)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    val timeblocks = viewModel.GetDayItems(day.toInt())
+
+
 
     Box(modifier = Modifier.width(128.dp))
     {
-        var columnHeight = 0
-        Column(Modifier.padding((16.dp)).fillMaxSize(1f).onGloballyPositioned { columnHeight = it.size.height }.clickable { viewModel.CreateDayItem(1, day.toInt(), 0.5f, 0.6f) })
-        {
-            repeat(24)
-            {
-                HorizontalDivider(modifier, 1.dp, Color.Gray)
-                Spacer(Modifier.weight(1f))
+        var columnHeight = 1670
+        Column(Modifier
+            .padding((16.dp))
+            .fillMaxSize(1f)
+            .onGloballyPositioned {
+                columnHeight = it.size.height
             }
+        )
+        {
+            repeat(23)
+            { number ->
+                HorizontalDivider(modifier, 1.dp, Color.Gray)
+                Spacer(Modifier
+                    .weight(1f)
+                    .fillMaxSize(1f)
+                    .clickable {
+                        val newName = ""
+                        viewModel.CreateDayItem(1, day.toInt(), number / 24f, (number + 1) / 24f)
+                    }
+                )
+
+            }
+            HorizontalDivider(modifier, 1.dp, Color.Gray)
+            Spacer(Modifier.weight(1f))
 
         }
-        Column(Modifier.padding((16.dp)).fillMaxSize(1f))
-        {
-            for (tb in uiState.value.formattedCalendarItems.filter { it.day == day.toInt() }) {
-                var height = 0f
-                Log.d("start", (tb.start * columnHeight).toString())
-                var offsetY by remember { mutableFloatStateOf(tb.start * columnHeight) }
-                Card(modifier = Modifier
-                        .fillMaxHeight(tb.end - tb.start)
-                    .fillMaxWidth(1f)
-                    .offset { IntOffset(0, offsetY.roundToInt()) }
+        for (tb in uiState.value.formattedCalendarItems.filter { it.day == day.toInt() }) {
+            Column (Modifier.padding((16.dp)).fillMaxSize(1f))
+            {
+                var offsetTop by remember { mutableFloatStateOf(columnHeight * tb.start) }
+                var offsetBottom by remember { mutableFloatStateOf(columnHeight * tb.end) }
+                var itemSize by remember { mutableFloatStateOf((tb.end - tb.start) * columnHeight) }
+                Spacer(modifier = Modifier
+                    .height(offsetTop.dp / getSystem().displayMetrics.density)
+                    .onGloballyPositioned { if(!tb.positionChanged)
+                        {
+                            offsetTop = columnHeight * tb.start
+                            offsetBottom = columnHeight * tb.end
+                        }
+                    }
+                )
+                HorizontalDivider(modifier
                     .draggable(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->
-                            offsetY = min(max(0f, offsetY + delta), columnHeight.toFloat() - height)
+                            offsetTop = min(max(0f, offsetTop + delta), offsetBottom)
+                            itemSize = offsetBottom - offsetTop
                             tb.positionChanged = true
                         },
-                        onDragStopped = { viewModel.UpdateDayItem(tb.id, newStart = offsetY / columnHeight, newEnd = (offsetY + height) / columnHeight) }
-
+                        onDragStopped = { viewModel.UpdateDayItem(tb.id, newStart = offsetTop / columnHeight, updateEnd = false) }
                     )
-                    .onGloballyPositioned {
-                        if(tb.positionChanged == false) {
-                            offsetY = tb.start * columnHeight
-                        }
-                    height = it.size.height.toFloat()}
+                        , 6.dp, Color.Gray)
+                Card(modifier = Modifier
+                    .height(abs(offsetBottom - offsetTop).dp / getSystem().displayMetrics.density)
+                    .fillMaxWidth(1f)
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta ->
+                            offsetTop = min(max(0f, offsetTop + delta), columnHeight.toFloat() - itemSize)
+                            offsetBottom = min(max(0f + itemSize, offsetBottom + delta), columnHeight.toFloat())
+
+                            tb.positionChanged = true
+                        },
+                        onDragStopped = { viewModel.UpdateDayItem(tb.id, newStart = offsetTop / columnHeight, newEnd = offsetBottom / columnHeight) }
+                    )
                     .clickable {
                         viewModel.DeleteDayItem(tb.id)
                     }
-                )
-                {
-                    Text("lol")
-                }
-            }
+                    .alpha(0.5f),
+                    shape = RectangleShape
 
+                )
+                {  }
+                HorizontalDivider(modifier.draggable(
+                    orientation = Orientation.Vertical,
+                    state = rememberDraggableState { delta ->
+                        offsetBottom = min(max(offsetTop, offsetBottom + delta), columnHeight.toFloat())
+                        itemSize = offsetBottom - offsetTop
+                        tb.positionChanged = true
+                    },
+                    onDragStopped = { viewModel.UpdateDayItem(tb.id, newEnd = offsetBottom / columnHeight, updateStart = false) }
+                )
+                , 6.dp, Color.Red)
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NameDialogue(
+    title: String = "Name this time slot",
+    setName: (name: String) -> Unit
+
+)
+{
+    BasicAlertDialog(
+        onDismissRequest = {setName("Unnamed")}
+    )
+    {
+        val text = remember { mutableStateOf("")}
+        Text(title)
+        TextField(value = text.value,
+            onValueChange = {
+                if(it.length < 20) {
+                    text.value = it
+                }
+            }
+        )
+    }
+}
 
 
 
