@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 
 abstract class BaseViewmodel : ViewModel() {
 
-    val apiUrl: String = "http://100.64.217.150:5000"
+    val apiUrl: String = "http://192.168.0.177:5000"
 
     abstract fun fetchData()
 

@@ -79,7 +79,10 @@ class MainActivity : ComponentActivity() {
                             }
 
                             Button(
-                                onClick = {}
+                                onClick = {Log.d("Clicked: ", "Yes...")
+                                    Intent(applicationContext, CalendarActivity::class.java).also {
+                                        startActivity(it)
+                                    }}
                             )
                             {
                                 Text("Calendar")
