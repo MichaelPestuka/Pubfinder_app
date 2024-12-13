@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -74,8 +75,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.window.Dialog
+import com.example.itu.ui.theme.Typography
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -108,19 +112,27 @@ class CalendarActivity : ComponentActivity() {
                             title = {Text("Calendar")})
                     },
                     modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(                            modifier = Modifier.padding(innerPadding),)
+                    Column(modifier = Modifier.padding(innerPadding),)
                     {
-                        MonthSelector(viewModel = viewModel)
-                        LazyRow()
+                        MonthSelector(modifier = Modifier.height(32.dp), viewModel = viewModel)
+                        LazyRow(modifier = Modifier.padding(start = 16.dp))
                         {
                             items(30)
                             { day ->
                                 Column()
                                 {
-                                    Text(day.toString())
-                                    CalendarColumn(viewModel = viewModel, day = day.toString())
+                                    Text((day + 1).toString(), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(1f).height(24.dp))
+                                    CalendarColumn(viewModel = viewModel, day = (day + 1).toString())
                                 }
                             }
+                        }
+                    }
+                    Column(modifier = Modifier.width(32.dp).padding(innerPadding).padding(top = 60.dp, bottom = 28.dp))
+                    {
+                        repeat(24)
+                        { hour ->
+                            Text(text = hour.toString())
+                            Spacer(modifier = Modifier.weight(1f))
                         }
                     }
                 }
@@ -137,14 +149,14 @@ class CalendarActivity : ComponentActivity() {
 @Composable
 fun MonthSelector(modifier: Modifier = Modifier, viewModel: CalendarViewModel)
 {
-    Row() {
-        Button(onClick = {}) {
+    Row(modifier = modifier) {
+        Button(modifier = Modifier.weight(1f), onClick = {}) {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
         }
-        Spacer(modifier = Modifier.weight(1f))
-        Text("December")
-        Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = {}) {
+//        Spacer(modifier = Modifier.weight(1f))
+        Text("December", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = Typography.headlineMedium)
+//        Spacer(modifier = Modifier.weight(1f))
+        Button(modifier = Modifier.weight(1f), onClick = {}) {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
