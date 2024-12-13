@@ -3,6 +3,7 @@ package com.example.itu
 import android.app.LauncherActivity.ListItem
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.util.Log
 import android.content.res.Resources.getSystem
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,10 +15,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -40,7 +44,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import com.example.itu.ui.theme.ITUTheme
@@ -49,8 +55,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 
 
 class MeetingActivity : ComponentActivity() {
@@ -98,42 +108,9 @@ fun MeeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
         Text(text = "To: " + uiState.value.meetingData.end)
         Text(text = "New: " + uiState.value.newTime)
     }
-    var rowWidth = 1080
-    Row(modifier = Modifier.height(96.dp).onGloballyPositioned { rowWidth = it.size.width })
-    {
-        var offsetLeft by remember { mutableFloatStateOf(0f) }
-        var offsetRight by remember { mutableFloatStateOf(0f) }
-        var itemSize by remember { mutableFloatStateOf(0f) }
-        Spacer(modifier = Modifier.width(offsetLeft.dp / getSystem().displayMetrics.density))
-        VerticalDivider(modifier
-            .draggable(
-                orientation = Orientation.Vertical,
-                state = rememberDraggableState { delta ->
-                    offsetLeft = min(max(0f, offsetLeft + delta), offsetRight)
-                    itemSize = offsetRight - offsetLeft
-//                    tb.positionChanged = true
-                },
-                onDragStopped = {  }
-            )
-            , 6.dp, Color.Gray)
-        Card() {  }
-        VerticalDivider(modifier
-            .draggable(
-                orientation = Orientation.Vertical,
-                state = rememberDraggableState { delta ->
-                    offsetRight = min(max(offsetLeft, offsetRight + delta), rowWidth.toFloat())
-                    itemSize = offsetRight - offsetLeft
-//                    tb.positionChanged = true
-                },
-                onDragStopped = {  }
-            )
-            , 6.dp, Color.Gray)
-    }
-
-    var timeState = rememberTimePickerState(0, 0, true)
-    TimeInput(state = timeState)
-    Button(onClick = {viewModel.changeTime(timeState.hour, timeState.minute)}) { Text(text = "Change Start") }
-    Button(onClick = {viewModel.changeTime(timeState.hour, timeState.minute, which = "end")}) { Text(text = "Change End") }
+    DateSelect(modifier, viewModel)
+    TimeSelector(modifier, viewModel)
+    Button(onClick = {viewModel.findTime()}) { Text("Find Time") }
     Userselector(viewModel = viewModel)
 }
 
@@ -162,3 +139,116 @@ fun Userselector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     }
 }
 
+@Composable
+fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
+{
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    Box(modifier = Modifier
+        .height(96.dp)
+        .fillMaxWidth(1f)
+        .padding(horizontal = 32.dp))
+    {
+        Row()
+        {
+            repeat(24)
+            {
+                VerticalDivider()
+                Spacer(modifier = Modifier.weight(1f))
+            }
+            VerticalDivider()
+        }
+
+        var rowWidth = 100
+        Row(modifier = Modifier
+
+            .onGloballyPositioned { rowWidth = it.size.width })
+        {
+            var offsetLeft by remember { mutableFloatStateOf(0f) }
+            var offsetRight by remember { mutableFloatStateOf(500f) }
+            var itemSize by remember { mutableFloatStateOf(0f) }
+            Spacer(modifier = Modifier.width(offsetLeft.dp / getSystem().displayMetrics.density)
+                .onGloballyPositioned {
+                    if (!uiState.value.meetingTime.editedTime) {
+                        offsetLeft = rowWidth * uiState.value.meetingTime.start
+                        offsetRight = rowWidth * uiState.value.meetingTime.end
+                        Log.d("width", rowWidth.toString())
+                        Log.d("start", offsetLeft.toString())
+                        Log.d("end", offsetRight.toString())
+                    }
+
+                })
+            VerticalDivider(modifier
+                .draggable(
+                    orientation = Orientation.Horizontal,
+                    state = rememberDraggableState { delta ->
+                        offsetLeft = min(max(0f, offsetLeft + delta), offsetRight)
+                        itemSize = offsetRight - offsetLeft
+                        uiState.value.meetingTime.editedTime = true
+                    },
+                    onDragStopped = { viewModel.changeTime(offsetLeft / rowWidth, "start") }
+                ), 6.dp, Color.Gray)
+            Card(modifier = Modifier
+                .width(abs(offsetRight - offsetLeft).dp / getSystem().displayMetrics.density)
+                .fillMaxHeight(1f)
+                .draggable(
+                    orientation = Orientation.Horizontal,
+                    state = rememberDraggableState { delta ->
+                        offsetLeft = min(max(0f, offsetLeft + delta), rowWidth.toFloat() - itemSize)
+                        offsetRight =
+                            min(max(0f + itemSize, offsetRight + delta), rowWidth.toFloat())
+                        uiState.value.meetingTime.editedTime = true
+                    },
+                    onDragStopped = {
+                        viewModel.changeTime(offsetLeft / rowWidth, "start")
+                        viewModel.changeTime(offsetRight / rowWidth, "end")
+                    }
+                )
+                .alpha(0.5f),
+                shape = RectangleShape
+
+            )
+            {
+                Text(text = (offsetLeft / rowWidth).toString())
+                Text(text = (offsetRight / rowWidth).toString())
+            }
+            VerticalDivider(modifier
+                .draggable(
+                    orientation = Orientation.Horizontal,
+                    state = rememberDraggableState { delta ->
+                        offsetRight = min(max(offsetLeft, offsetRight + delta), rowWidth.toFloat())
+                        itemSize = offsetRight - offsetLeft
+                        uiState.value.meetingTime.editedTime = true
+                    },
+                    onDragStopped = {
+                        viewModel.changeTime(offsetRight / rowWidth, "end")
+                    }
+                ), 6.dp, Color.Gray)
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
+{
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+
+    Row()
+    {
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year - 1, "year")}) { Icons.AutoMirrored.Outlined.KeyboardArrowLeft }
+        Text(uiState.value.meetingTime.year.toString())
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year + 1, "year")}) { Icons.AutoMirrored.Outlined.KeyboardArrowRight }
+    }
+    Row()
+    {
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month - 1, "month")}) { Icons.AutoMirrored.Outlined.KeyboardArrowLeft }
+        Text(uiState.value.meetingTime.month.toString())
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month + 1, "month")}) { Icons.AutoMirrored.Outlined.KeyboardArrowRight }
+    }
+    Row()
+    {
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day - 1, "day")}) { Icons.AutoMirrored.Outlined.KeyboardArrowLeft }
+        Text(uiState.value.meetingTime.day.toString())
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day + 1, "day")}) { Icons.AutoMirrored.Outlined.KeyboardArrowRight }
+    }
+}

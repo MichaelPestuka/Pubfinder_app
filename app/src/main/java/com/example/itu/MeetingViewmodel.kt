@@ -2,7 +2,9 @@ package com.example.itu
 
 import android.util.Log
 import androidx.lifecycle.viewModelScope
+import com.example.itu.com.example.itu.CommonTimeInfo
 import com.example.itu.com.example.itu.Meeting
+import com.example.itu.com.example.itu.MeetingTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +29,7 @@ data class MeetingState
     var ownerData: User = User(),
     var users: Array<User> = emptyArray<User>(),
     var participants: Array<User> = emptyArray<User>(),
+    var meetingTime: MeetingTime = MeetingTime(0f, 0f, false, 0, 0, 0),
             var newTime: String = "0:0",
 //    var meetings: Array<Meeting> = emptyArray<Meeting>(),
 //    var pubs: Array<Pub> = emptyArray<Pub>()
@@ -42,20 +45,30 @@ class MeetingViewmodel : BaseViewmodel() {
 
     }
 
-    fun changeTime(hour: Int, minute: Int, seconds: Int = 0, miliseconds: Int = 0, which: String = "start")
+    fun changeTime(floatTime: Float, which: String = "start")
     {
-        val timeIsoString = String.format("%02d:%02d:%02d.%06d", hour, minute, seconds, miliseconds)
-        val dateIsoString = uiState.value.meetingData.begin.split("T")[0] + "T"
         if(which == "start")
         {
+            val current = LocalDateTime.parse(uiState.value.meetingData.begin)
 
-            uiState.value.meetingData.begin =  dateIsoString + timeIsoString
+            uiState.value.meetingData.begin =  ChangeTime(floatTime, current).format(DateTimeFormatter.ISO_DATE_TIME)
 
         }
         else
         {
-            uiState.value.meetingData.end =  dateIsoString + timeIsoString
+            val current = LocalDateTime.parse(uiState.value.meetingData.end)
+
+            uiState.value.meetingData.end =  ChangeTime(floatTime, current).format(DateTimeFormatter.ISO_DATE_TIME)
         }
+        putAndFetch()
+    }
+
+    fun changeDate(value: Int, type: String)
+    {
+        uiState.value.meetingData.begin = ChangeDate(value, type, LocalDateTime.parse(uiState.value.meetingData.begin)).format(
+            DateTimeFormatter.ISO_DATE_TIME)
+        uiState.value.meetingData.end = ChangeDate(value, type, LocalDateTime.parse(uiState.value.meetingData.end)).format(
+            DateTimeFormatter.ISO_DATE_TIME)
         putAndFetch()
     }
 
@@ -119,8 +132,8 @@ class MeetingViewmodel : BaseViewmodel() {
                     pubData = pubData,
                     ownerData = ownerData,
                     participants = participants,
-                    users = users
-
+                    users = users,
+                    meetingTime = fullTimeFromIso(result.begin, result.end)
                 )
             }
         }
@@ -144,5 +157,30 @@ class MeetingViewmodel : BaseViewmodel() {
     fun setMeetingID(id: Int)
     {
         uiState.value.meetingID = id
+    }
+
+    fun findTime()
+    {
+        viewModelScope.launch {
+            val ownerData = withContext(Dispatchers.IO)
+            {
+                var ids = emptyArray<String>()
+                for (user in _uiState.value.participants) {
+                    Log.d("id", user.id)
+                    ids += user.id
+                }
+                val date =
+                    LocalDateTime.parse(_uiState.value.meetingData.begin).withHour(0).withMinute(0)
+                        .withSecond(0)
+
+                var info = CommonTimeInfo(
+                    ids,
+                    date.format(DateTimeFormatter.ISO_DATE_TIME),
+                    _uiState.value.meetingData.begin
+                )
+                val time = PostRequest("/get_common_time", info)
+//                Log.d("gotten", time)
+            }
+        }
     }
 }

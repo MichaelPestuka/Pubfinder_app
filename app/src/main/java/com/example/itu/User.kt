@@ -1,7 +1,7 @@
 package com.example.itu
 
 class User(
-    var id: String = "0",
+    var id: String = "1",
     var username: String = "Nobody",
     var password_hash: String = "0",
     var blacklisted_pubs: Array<String> = arrayOf<String>(),

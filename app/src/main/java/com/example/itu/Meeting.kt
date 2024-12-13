@@ -14,5 +14,15 @@ class Meeting(
 
 class MeetingTime(
     var start: Float,
-    var end: Float
+    var end: Float,
+    var editedTime: Boolean = false,
+    var year: Int,
+    var month: Int,
+    var day: Int
+)
+
+class CommonTimeInfo(
+    var ids: Array<String>,
+    var start_date: String,
+    var start_time: String
 )

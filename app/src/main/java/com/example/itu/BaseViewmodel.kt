@@ -50,6 +50,14 @@ abstract class BaseViewmodel : ViewModel() {
         val serializedObject = Gson().toJson(sentObject)
         connection.outputStream.write(serializedObject.toByteArray())
         Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
+        Log.d("JSON", serializedObject)
+        if(connection.responseCode == 200)
+        {
+            val inputSystem = connection.inputStream
+            val inputStreamReader = InputStreamReader(inputSystem, "UTF-8")
+            Log.d("Json response", inputStreamReader.readText())
+
+        }
     }
     suspend fun <T: Any> PutRequest(url: String, sentObject: T) {
         Log.d("request: ", "PUT " + url)
