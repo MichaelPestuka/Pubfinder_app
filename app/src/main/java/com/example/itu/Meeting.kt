@@ -11,9 +11,8 @@ class Meeting(
     var user: Array<String> = arrayOf<String>(),
     var pub_name: String = "No name"
 )
-{
-//    override fun toString(): String
-//    {
-//        return "name: " + username + " blocked times: " + timetable.joinToString(", ")
-//    }
-}
+
+class MeetingTime(
+    var start: Float,
+    var end: Float
+)
