@@ -116,7 +116,7 @@ fun BeerRatingElement(modifier: Modifier = Modifier, viewModel: BeerViewModel)
     var filteredBeers = uiState.value.beers
     if(nameFilter != "")
     {
-        filteredBeers = uiState.value.beers.filter { it.name.toLowerCase().contains(nameFilter.toLowerCase()) }.toTypedArray()
+        filteredBeers = uiState.value.beers.filter { (it.name.toLowerCase() + it.degree).contains(nameFilter.toLowerCase()) }.toTypedArray()
     }
     LazyColumn(Modifier.padding((16.dp)))
     {
@@ -126,7 +126,7 @@ fun BeerRatingElement(modifier: Modifier = Modifier, viewModel: BeerViewModel)
             {
                 Row()
                 {
-                    Text(text = beer.name, Modifier.padding(4.dp))
+                    Text(text = beer.name + " " + beer.degree + "°", Modifier.padding(4.dp))
                     Spacer(Modifier.weight(1f))
                     StarBar(
                         viewModel = viewModel,

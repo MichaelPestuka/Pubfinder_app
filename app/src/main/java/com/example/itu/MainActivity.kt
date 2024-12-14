@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -133,14 +134,6 @@ class MainActivity : ComponentActivity() {
                         MeetingList(viewModel = viewModel, editMeetingFun = ::editMeeting)
 
                     }
-                    /*
-                    LazyColumn {
-                        items(people) {
-                            ListItem(it)
-                        }
-                    }
-                    */
-
                 }
             }
         }
@@ -175,7 +168,7 @@ fun MeetingList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMee
                     editMeetingFun(meeting.id.toInt())
                 }.weight(1f).height(96.dp))
                 {
-                    Text(text = meeting.begin, Modifier.padding(4.dp))
+                    Text(text = printISO(meeting.begin), Modifier.padding(4.dp))
                     Text(
                         text = "Organizer: " + viewModel.GetUserByID(meeting.owner_id).username,
                         modifier.padding(4.dp)
@@ -187,10 +180,21 @@ fun MeetingList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMee
                 }
                 if(uiState.value.confirm_delete == meeting.id)
                 {
-                    Button(onClick = { viewModel.DeleteMeeting(meeting.id) }, modifier = Modifier.padding(6.dp).width(96.dp).height(96.dp))  { Text("Confirm?") }
+                    Button(onClick = { viewModel.DeleteMeeting(meeting.id) },
+                        modifier = Modifier.padding(6.dp).width(96.dp).height(96.dp),
+                        shape = RoundedCornerShape(10)
+                    )
+                    {
+                        Text("Confirm?")
+                    }
                 }
                 else {
-                    Button(onClick = { viewModel.ConfirmDeletion(meeting.id) }, modifier = Modifier.padding(6.dp).width(96.dp).height(96.dp)) { Text("Delete") }
+                    Button(onClick = { viewModel.ConfirmDeletion(meeting.id) },
+                        modifier = Modifier.padding(6.dp).width(96.dp).height(96.dp),
+                        shape = RoundedCornerShape(10))
+                    {
+                        Text("Delete")
+                    }
                 }
             }
         }

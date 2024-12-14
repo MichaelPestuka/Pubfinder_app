@@ -73,7 +73,8 @@ class HomeViewModel : BaseViewmodel() {
             _uiState.update { currentState ->
                 currentState.copy(
                     meetings = result,
-                    last_meeting_id = result.last().id.toInt()
+                    last_meeting_id = result.last().id.toInt(),
+                    confirm_delete = "0"
                 )
             }
         }
@@ -113,7 +114,8 @@ class HomeViewModel : BaseViewmodel() {
         return found_users.first()
     }
 
-    public suspend fun NewMeeting() {
+    public suspend fun NewMeeting()
+    {
         var new = Meeting(
             owner_id = uiState.value.currentUser.id,
             begin = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),

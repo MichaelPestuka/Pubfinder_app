@@ -1,4 +1,4 @@
-package com.example.itu.ui.theme
+package com.example.itu
 
 class Tag (
     var id: String = "0",

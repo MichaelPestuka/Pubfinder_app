@@ -4,6 +4,7 @@ import com.example.itu.com.example.itu.MeetingTime
 import kotlinx.coroutines.handleCoroutineException
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.Date
 
@@ -69,3 +70,7 @@ public fun fullTimeFromIso(start: String, end: String): MeetingTime
     return MeetingTime(floatStart, floatEnd, false, date.year, date.month.value, date.dayOfMonth)
 }
 
+public fun printISO(iso: String): String
+{
+    return LocalDateTime.parse(iso).format(DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm"))
+}

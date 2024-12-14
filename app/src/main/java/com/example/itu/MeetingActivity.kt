@@ -67,7 +67,11 @@ import kotlin.math.min
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 
 import androidx.compose.runtime.mutableStateOf
@@ -128,9 +132,16 @@ fun MeeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
     Column(modifier = Modifier.verticalScroll(rememberScrollState()).height(2000.dp)
     ) {
+        Text("Time and Date", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
         DateSelect(modifier, viewModel)
         TimeSelector(modifier, viewModel)
+
+        HorizontalDivider(Modifier.padding(top = 16.dp))
+        Text("Participants", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
         UserSelector(viewModel = viewModel)
+
+        HorizontalDivider(Modifier.padding(top = 16.dp))
+        Text("Pub", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
         PubSelector(viewModel = viewModel)
     }
 }
@@ -143,7 +154,6 @@ fun UserSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     Card(modifier = modifier.fillMaxWidth(1f).height(500.dp))
     {
         TextField(value = nameFilter, onValueChange = {nameFilter = it}, label = {Text("Find User")}, modifier = Modifier.fillMaxWidth(1f))
-        Text("Participants: ")
         LazyColumn()
         {
             var filteredUsers = uiState.value.users
@@ -335,22 +345,64 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
 fun PubSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    Button(onClick = {viewModel.findPub()}) { Text("Find pub") }
+    var nameFilter by remember { mutableStateOf("") }
+    TextField(value = nameFilter, onValueChange = {nameFilter = it}, label = {Text("Search")}, modifier = Modifier.fillMaxWidth(1f))
+
+    var bestPubs = viewModel.getPubsByID(uiState.value.bestPubs)
+    var allPubs = uiState.value.pubData
+    if(nameFilter != "")
+    {
+        bestPubs = bestPubs.filter { (it.name.toLowerCase() + it.address).contains(nameFilter.toLowerCase()) }.toTypedArray()
+        allPubs = allPubs.filter {  (it.name.toLowerCase() + it.address).contains(nameFilter.toLowerCase()) }.toTypedArray()
+    }
     LazyRow(modifier = Modifier.height(500.dp))
     {
-        items(uiState.value.pubData)
+        items(bestPubs)
         {
-            Card(modifier = Modifier.clickable { viewModel.changePub(it.id) }.height(500.dp).width(500.dp))
-            {
-                Text(text = it.name)
-                Text(text = it.address)
+            PubCard(modifier, viewModel, it, true)
+        }
 
-                if(uiState.value.meetingData.pub_id == it.id)
-                {
-                    Text("Selected")
-                }
+        items(allPubs)
+        {
+            if(it.id !in uiState.value.bestPubs)
+            {
+                PubCard(modifier, viewModel, it, false)
             }
         }
     }
 
+}
+
+@Composable
+fun PubCard(modifier: Modifier = Modifier, viewModel: MeetingViewmodel, pub: Pub, recommended: Boolean)
+{
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    Card(modifier = Modifier.clickable { viewModel.changePub(pub.id) }.height(300.dp).width(300.dp).padding(16.dp))
+    {
+        Column(Modifier.padding(8.dp)) {
+            Row()
+            {
+                Column()
+                {
+                    Text(text = pub.name)
+                    Text(text = pub.address)
+                }
+                Spacer(Modifier.weight(1f))
+                if (recommended) {
+                    Icon(imageVector = Icons.Outlined.Star, contentDescription = null)
+                }
+                if(uiState.value.meetingData.pub_id == pub.id)
+                {
+                    Icon(imageVector = Icons.Outlined.Check, contentDescription = null)
+                }
+            }
+
+            HorizontalDivider(Modifier.padding(vertical =  8.dp))
+
+            val onTap = viewModel.getBeers(pub.id)
+            for (beer in onTap) {
+                Text(beer.name + " " + beer.degree + "°")
+            }
+        }
+    }
 }

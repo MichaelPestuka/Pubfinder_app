@@ -6,22 +6,15 @@ import com.example.itu.com.example.itu.CommonTimeInfo
 import com.example.itu.com.example.itu.Meeting
 import com.example.itu.com.example.itu.MeetingTime
 import com.example.itu.com.example.itu.PubSelectorInfo
-import com.example.itu.ui.theme.Tag
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.sql.Time
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.OffsetTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale.filter
-import kotlin.math.min
 
 data class MeetingState
     (
@@ -33,7 +26,10 @@ data class MeetingState
     var participants: Array<User> = emptyArray<User>(),
     var meetingTime: MeetingTime = MeetingTime(0f, 0f, false, 2024, 1, 1),
     var tagData: Array<Tag> = emptyArray<Tag>(),
-            var newTime: String = "0:0",
+    var newTime: String = "0:0",
+    var bestPubs: Array<String> = emptyArray(),
+    var beers: Array<Beer> = emptyArray(),
+    var drinkList: Array<DrinkList> = emptyArray()
 //    var meetings: Array<Meeting> = emptyArray<Meeting>(),
 //    var pubs: Array<Pub> = emptyArray<Pub>()
 
@@ -133,6 +129,14 @@ class MeetingViewmodel : BaseViewmodel() {
             {
                 getRequest("/tag", Array<Tag>::class, "tags")
             }
+            val beers = withContext(Dispatchers.IO)
+            {
+                getRequest("/beer", Array<Beer>::class, "beers")
+            }
+            val drinkList = withContext(Dispatchers.IO)
+            {
+                getRequest("/pub_drink_list", Array<DrinkList>::class, "pub drink lists")
+            }
             _uiState.update { currentState ->
                 currentState.copy(
                     meetingData = result,
@@ -141,9 +145,12 @@ class MeetingViewmodel : BaseViewmodel() {
                     participants = participants,
                     users = users,
                     meetingTime = fullTimeFromIso(result.begin, result.end),
-                    tagData = tags
+                    tagData = tags,
+                    beers = beers,
+                    drinkList = drinkList
                 )
             }
+            findPub()
 
         }
     }
@@ -163,6 +170,17 @@ class MeetingViewmodel : BaseViewmodel() {
         }
     }
 
+    fun getBeers(pub_id: String): Array<Beer>
+    {
+        val relevant = uiState.value.drinkList.filter { it.pub_id == pub_id }
+        var beers = emptyArray<Beer>()
+        for(drink in relevant)
+        {
+            beers += uiState.value.beers.filter { it.id == drink.beer_id }
+        }
+        return beers
+    }
+
     fun setMeetingID(id: Int)
     {
         uiState.value.meetingID = id
@@ -171,6 +189,16 @@ class MeetingViewmodel : BaseViewmodel() {
     fun getTagName(id: String): String
     {
         return uiState.value.pubData.filter { it.id == id }.first().name
+    }
+
+    fun getPubByID(id: String): Pub
+    {
+        return uiState.value.pubData.filter { it.id == id }.first()
+    }
+
+    fun getPubsByID(ids: Array<String>): Array<Pub>
+    {
+        return uiState.value.pubData.filter { it.id in ids }.toTypedArray()
     }
 
     fun changePub(id: String)
@@ -186,8 +214,11 @@ class MeetingViewmodel : BaseViewmodel() {
                 PostRequest("/pub_selector", PubSelectorInfo(uiState.value.meetingData.user, emptyArray()), true)
             }
             val bestPubs = ParseJson(pubs, Array<String>::class, "top 5 pubs")
-            uiState.value.meetingData.pub_id = bestPubs.first()
-            putAndFetch()
+            _uiState.update { currentState ->
+                currentState.copy(
+                    bestPubs = bestPubs
+                )
+            }
         }
     }
 
