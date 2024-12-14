@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.itu.com.example.itu.CommonTimeInfo
 import com.example.itu.com.example.itu.Meeting
 import com.example.itu.com.example.itu.MeetingTime
+import com.example.itu.com.example.itu.PubSelectorInfo
+import com.example.itu.ui.theme.Tag
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,11 +27,12 @@ data class MeetingState
     (
     var meetingID: Int = 0,
     var meetingData: Meeting = Meeting(),
-    var pubData: Pub = Pub(),
+    var pubData: Array<Pub> = emptyArray<Pub>(),
     var ownerData: User = User(),
     var users: Array<User> = emptyArray<User>(),
     var participants: Array<User> = emptyArray<User>(),
-    var meetingTime: MeetingTime = MeetingTime(0f, 0f, false, 0, 0, 0),
+    var meetingTime: MeetingTime = MeetingTime(0f, 0f, false, 2024, 1, 1),
+    var tagData: Array<Tag> = emptyArray<Tag>(),
             var newTime: String = "0:0",
 //    var meetings: Array<Meeting> = emptyArray<Meeting>(),
 //    var pubs: Array<Pub> = emptyArray<Pub>()
@@ -112,7 +115,7 @@ class MeetingViewmodel : BaseViewmodel() {
             }
             val pubData = withContext(Dispatchers.IO)
             {
-                getRequest("/pub?id=" + result.pub_id, Pub::class, "pub")
+                getRequest("/pub", Array<Pub>::class, "pubs")
             }
             val ownerData = withContext(Dispatchers.IO)
             {
@@ -126,6 +129,10 @@ class MeetingViewmodel : BaseViewmodel() {
             {
                 getRequest("/user", Array<User>::class, "users")
             }
+            val tags = withContext(Dispatchers.IO)
+            {
+                getRequest("/tag", Array<Tag>::class, "tags")
+            }
             _uiState.update { currentState ->
                 currentState.copy(
                     meetingData = result,
@@ -133,9 +140,11 @@ class MeetingViewmodel : BaseViewmodel() {
                     ownerData = ownerData,
                     participants = participants,
                     users = users,
-                    meetingTime = fullTimeFromIso(result.begin, result.end)
+                    meetingTime = fullTimeFromIso(result.begin, result.end),
+                    tagData = tags
                 )
             }
+
         }
     }
 
@@ -159,6 +168,30 @@ class MeetingViewmodel : BaseViewmodel() {
         uiState.value.meetingID = id
     }
 
+    fun getTagName(id: String): String
+    {
+        return uiState.value.pubData.filter { it.id == id }.first().name
+    }
+
+    fun changePub(id: String)
+    {
+        uiState.value.meetingData.pub_id = id
+        putAndFetch()
+    }
+
+    fun findPub() {
+        viewModelScope.launch {
+            val pubs = withContext(Dispatchers.IO)
+            {
+                PostRequest("/pub_selector", PubSelectorInfo(uiState.value.meetingData.user, emptyArray()), true)
+            }
+            val bestPubs = ParseJson(pubs, Array<String>::class, "top 5 pubs")
+            uiState.value.meetingData.pub_id = bestPubs.first()
+            putAndFetch()
+        }
+    }
+
+
     fun findTime()
     {
         viewModelScope.launch {
@@ -178,8 +211,11 @@ class MeetingViewmodel : BaseViewmodel() {
                     date.format(DateTimeFormatter.ISO_DATE_TIME),
                     _uiState.value.meetingData.begin
                 )
-                val time = PostRequest("/get_common_time", info)
-//                Log.d("gotten", time)
+                val time = PostRequest("/get_common_time", info, true)
+                Log.d("time", time)
+                uiState.value.meetingData.begin = ParseJson(time, String::class, "start")
+                uiState.value.meetingData.end = ParseJson(time, String::class, "end")
+                putAndFetch()
             }
         }
     }

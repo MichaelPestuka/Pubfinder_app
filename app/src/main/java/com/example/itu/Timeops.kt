@@ -1,8 +1,10 @@
 package com.example.itu
 
 import com.example.itu.com.example.itu.MeetingTime
+import kotlinx.coroutines.handleCoroutineException
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.format.DateTimeParseException
 import java.util.Date
 
 public fun IsoToFloatTime(iso: String) : Float
@@ -12,7 +14,14 @@ public fun IsoToFloatTime(iso: String) : Float
 
 public fun IsoTimeString(iso: String): String
 {
-    return (LocalDateTime.parse(iso).hour.toString() + ":" + LocalDateTime.parse(iso).minute.toString())
+    try {
+//        return (LocalDateTime.parse(iso).hour.toString() + ":" + LocalDateTime.parse(iso).minute.toString())
+        return String.format("%02d:%02d", LocalDateTime.parse(iso).hour, LocalDateTime.parse(iso).minute)
+    }
+    catch (e: DateTimeParseException)
+    {
+        return "00:00"
+    }
 }
 
 public fun ChangeTime(floatTime: Float, currentTime: LocalDateTime) : LocalDateTime

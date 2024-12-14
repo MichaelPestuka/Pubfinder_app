@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.math.exp
 import kotlin.reflect.KClass
 
 abstract class BaseViewmodel : ViewModel() {
@@ -41,7 +42,7 @@ abstract class BaseViewmodel : ViewModel() {
         Log.d("Get Done", url)
         return parsedData
     }
-    suspend fun <T: Any> PostRequest(url: String, sentObject: T)
+    suspend fun <T: Any>  PostRequest(url: String, sentObject: T, expectResponse: Boolean = false) : String
     {
         Log.d("request: ", "POST " + url)
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
@@ -51,13 +52,14 @@ abstract class BaseViewmodel : ViewModel() {
         connection.outputStream.write(serializedObject.toByteArray())
         Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
         Log.d("JSON", serializedObject)
-        if(connection.responseCode == 200)
+        if(connection.responseCode == 200 && expectResponse)
         {
             val inputSystem = connection.inputStream
             val inputStreamReader = InputStreamReader(inputSystem, "UTF-8")
-            Log.d("Json response", inputStreamReader.readText())
-
+//            Log.d("Json response", inputStreamReader.readText())
+            return inputStreamReader.readText()
         }
+        return ""
     }
     suspend fun <T: Any> PutRequest(url: String, sentObject: T) {
         Log.d("request: ", "PUT " + url)
@@ -75,5 +77,14 @@ abstract class BaseViewmodel : ViewModel() {
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "DELETE"
         Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
+    }
+
+    fun <T: Any> ParseJson(json: String, result: KClass<T>, dataName: String): T
+    {
+        val parsedJson = Gson().fromJson(json, JsonObject::class.java)
+
+        val parsedData = Gson().fromJson(parsedJson.get(dataName), result.java)
+
+        return parsedData
     }
 }

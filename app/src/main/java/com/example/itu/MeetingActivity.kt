@@ -5,6 +5,7 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.util.Log
 import android.content.res.Resources.getSystem
+import android.graphics.drawable.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,6 +16,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,7 +29,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -61,6 +67,16 @@ import kotlin.math.min
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material3.Icon
+
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.toLowerCase
+import java.time.LocalDateTime
+import java.time.Month
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 
 class MeetingActivity : ComponentActivity() {
@@ -98,38 +114,39 @@ class MeetingActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun MeeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
-    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    Card()
-    {
-        Text(text = "ID: " + uiState.value.meetingData.id)
-        Text(text = "Owner: " + uiState.value.ownerData.username)
-        Text(text = "Pub: " + uiState.value.pubData.name)
-        Text(text = "From: " + uiState.value.meetingData.begin)
-        Text(text = "To: " + uiState.value.meetingData.end)
-        Text(text = "New: " + uiState.value.newTime)
+    Column(modifier = Modifier.verticalScroll(rememberScrollState()).height(2000.dp)
+    ) {
+        DateSelect(modifier, viewModel)
+        TimeSelector(modifier, viewModel)
+        UserSelector(viewModel = viewModel)
+        PubSelector(viewModel = viewModel)
     }
-    DateSelect(modifier, viewModel)
-    TimeSelector(modifier, viewModel)
-    Button(onClick = {viewModel.findTime()}) { Text("Find Time") }
-    Userselector(viewModel = viewModel)
 }
 
 @Composable
-fun Userselector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
+fun UserSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    Card(modifier = modifier)
+    var nameFilter by remember { mutableStateOf("") }
+    Card(modifier = modifier.fillMaxWidth(1f).height(500.dp))
     {
+        TextField(value = nameFilter, onValueChange = {nameFilter = it}, label = {Text("Find User")}, modifier = Modifier.fillMaxWidth(1f))
         Text("Participants: ")
         LazyColumn()
         {
-            items(uiState.value.users)
+            var filteredUsers = uiState.value.users
+            if(nameFilter != "")
+            {
+                filteredUsers = uiState.value.users.filter { it.username.toLowerCase().contains(nameFilter.toLowerCase()) }.toTypedArray()
+            }
+            items(filteredUsers)
             { user ->
-                Card(Modifier.clickable {})
+                Card(Modifier.clickable {viewModel.changeInviteState(user)})
                 {
                     Row()
                     {
                         Text(text = user.username, Modifier.padding(4.dp))
+                        Spacer(modifier = Modifier.weight(1f))
                         Checkbox(checked = viewModel.isParticipant(user), onCheckedChange = {viewModel.changeInviteState(user)})
                     }
                 }
@@ -171,9 +188,7 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
                     if (!uiState.value.meetingTime.editedTime) {
                         offsetLeft = rowWidth * uiState.value.meetingTime.start
                         offsetRight = rowWidth * uiState.value.meetingTime.end
-                        Log.d("width", rowWidth.toString())
-                        Log.d("start", offsetLeft.toString())
-                        Log.d("end", offsetRight.toString())
+                        itemSize = offsetRight - offsetLeft
                     }
 
                 })
@@ -208,8 +223,10 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 
             )
             {
-                Text(text = (offsetLeft / rowWidth).toString())
-                Text(text = (offsetRight / rowWidth).toString())
+//                Text(text = (ChangeTime((offsetLeft / 8) / rowWidth, LocalDateTime.now()).format(
+//                    DateTimeFormatter.ofPattern("HH:mm"))).toString())
+//                Text(text = (ChangeTime((offsetRight / 8) / rowWidth, LocalDateTime.now()).format(
+//                    DateTimeFormatter.ofPattern("HH:mm"))).toString())
             }
             VerticalDivider(modifier
                 .draggable(
@@ -226,6 +243,19 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
             Spacer(modifier = Modifier.weight(1f))
         }
     }
+    Row()
+    {
+        Spacer(Modifier.weight(1f))
+
+        Text(text = IsoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center)
+        Spacer(Modifier.weight(1f))
+        Button(onClick = { viewModel.findTime() }) { Text("Find Time") }
+        Spacer(Modifier.weight(1f))
+        Text(text = IsoTimeString(uiState.value.meetingData.end))
+        Spacer(Modifier.weight(1f))
+
+    }
+
 }
 
 @Composable
@@ -235,20 +265,77 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
 
     Row()
     {
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year - 1, "year")}) { Icons.AutoMirrored.Outlined.KeyboardArrowLeft }
-        Text(uiState.value.meetingTime.year.toString())
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year + 1, "year")}) { Icons.AutoMirrored.Outlined.KeyboardArrowRight }
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year - 1, "year")},
+            modifier = Modifier.weight(1f)
+        )
+        {
+            Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
+        }
+        Text(uiState.value.meetingTime.year.toString(),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f),
+        )
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year + 1, "year")},
+            modifier = Modifier.weight(1f)
+        )
+        {
+            Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
+        }
     }
     Row()
     {
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month - 1, "month")}) { Icons.AutoMirrored.Outlined.KeyboardArrowLeft }
-        Text(uiState.value.meetingTime.month.toString())
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month + 1, "month")}) { Icons.AutoMirrored.Outlined.KeyboardArrowRight }
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month - 1, "month")},
+            modifier = Modifier.weight(1f))
+        {
+            Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
+        }
+        Text(Month.of(uiState.value.meetingTime.month.toInt()).getDisplayName(TextStyle.FULL, Locale.US),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f))
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month + 1, "month")},
+            modifier = Modifier.weight(1f))
+        {
+            Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
+        }
     }
     Row()
     {
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day - 1, "day")}) { Icons.AutoMirrored.Outlined.KeyboardArrowLeft }
-        Text(uiState.value.meetingTime.day.toString())
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day + 1, "day")}) { Icons.AutoMirrored.Outlined.KeyboardArrowRight }
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day - 1, "day")},
+            modifier = Modifier.weight(1f))
+        {
+            Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
+        }
+        Text(uiState.value.meetingTime.day.toString(),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f))
+        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day + 1, "day")},
+            modifier = Modifier.weight(1f))
+        {
+            Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
+        }
     }
+}
+
+@Composable
+fun PubSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
+{
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    Button(onClick = {viewModel.findPub()}) { Text("Find pub") }
+    LazyRow(modifier = Modifier.height(500.dp))
+    {
+        items(uiState.value.pubData)
+        {
+            Card(modifier = Modifier.clickable { viewModel.changePub(it.id) }.height(500.dp).width(500.dp))
+            {
+                Text(text = it.name)
+                Text(text = it.address)
+
+                if(uiState.value.meetingData.pub_id == it.id)
+                {
+                    Text("Selected")
+                }
+            }
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.example.itu.com.example.itu
 
+import java.time.LocalDateTime
 import java.util.Date
 
 class Meeting(
@@ -19,6 +20,14 @@ class MeetingTime(
     var year: Int,
     var month: Int,
     var day: Int
+)
+{
+
+}
+
+class PubSelectorInfo(
+    var ids: Array<String>,
+    var tag_ids: Array<String>
 )
 
 class CommonTimeInfo(
