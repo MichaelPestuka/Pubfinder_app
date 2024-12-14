@@ -68,6 +68,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TopAppBar
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.style.TextAlign
@@ -82,6 +83,7 @@ import java.util.Locale
 class MeetingActivity : ComponentActivity() {
     val viewModel: MeetingViewmodel by viewModels()
 
+    @OptIn(ExperimentalMaterial3Api::class)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         lifecycleScope.launch {
@@ -98,12 +100,22 @@ class MeetingActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
+
             ITUTheme {
-                Column()
-                {
-                    Text(text = "Edit Meeting")
-                    MeeetingEditor(viewModel = viewModel)
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Edit Meeting") })
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    Column(modifier = Modifier.padding(innerPadding))
+                    {
+                        MeeetingEditor(viewModel = viewModel)
+                    }
+
                 }
+
 
             }
         }
@@ -247,11 +259,11 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     {
         Spacer(Modifier.weight(1f))
 
-        Text(text = IsoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center)
+        Text(text = IsoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center, color = Color.White)
         Spacer(Modifier.weight(1f))
         Button(onClick = { viewModel.findTime() }) { Text("Find Time") }
         Spacer(Modifier.weight(1f))
-        Text(text = IsoTimeString(uiState.value.meetingData.end))
+        Text(text = IsoTimeString(uiState.value.meetingData.end), color = Color.White)
         Spacer(Modifier.weight(1f))
 
     }
@@ -273,6 +285,7 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
         }
         Text(uiState.value.meetingTime.year.toString(),
             textAlign = TextAlign.Center,
+            color = Color.White,
             modifier = Modifier.weight(1f),
         )
         Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year + 1, "year")},
@@ -291,6 +304,7 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
         }
         Text(Month.of(uiState.value.meetingTime.month.toInt()).getDisplayName(TextStyle.FULL, Locale.US),
             textAlign = TextAlign.Center,
+            color = Color.White,
             modifier = Modifier.weight(1f))
         Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month + 1, "month")},
             modifier = Modifier.weight(1f))
@@ -307,6 +321,7 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
         }
         Text(uiState.value.meetingTime.day.toString(),
             textAlign = TextAlign.Center,
+            color = Color.White,
             modifier = Modifier.weight(1f))
         Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day + 1, "day")},
             modifier = Modifier.weight(1f))

@@ -19,6 +19,8 @@ import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.reflect.KClass
 
 data class HomeState
@@ -27,8 +29,8 @@ data class HomeState
             var users: Array<User> = emptyArray<User>(),
             var meetings: Array<Meeting> = emptyArray<Meeting>(),
             var pubs: Array<Pub> = emptyArray<Pub>(),
-
-
+            var last_meeting_id: Int = 0,
+            var confirm_delete: String = ""
     )
 
 class HomeViewModel : BaseViewmodel() {
@@ -71,6 +73,7 @@ class HomeViewModel : BaseViewmodel() {
             _uiState.update { currentState ->
                 currentState.copy(
                     meetings = result,
+                    last_meeting_id = result.last().id.toInt()
                 )
             }
         }
@@ -110,5 +113,33 @@ class HomeViewModel : BaseViewmodel() {
         return found_users.first()
     }
 
+    public suspend fun NewMeeting() {
+        var new = Meeting(
+            owner_id = uiState.value.currentUser.id,
+            begin = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
+            end = LocalDateTime.now().plusHours(1).format(DateTimeFormatter.ISO_DATE_TIME)
+        )
+        PostRequest("/meeting", new)
+    }
+
+    public fun ConfirmDeletion(id: String)
+    {
+        _uiState.update { currentState ->
+            currentState.copy(
+                confirm_delete = id
+            )
+        }
+    }
+
+    public  fun DeleteMeeting(id: String)
+    {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO)
+            {
+                DeleteRequest("/meeting/" + id)
+            }
+            fetchData()
+        }
+    }
 
 }

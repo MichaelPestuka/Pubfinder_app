@@ -63,7 +63,7 @@ class BeerViewModel : BaseViewmodel() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                getRequest("/fav_beer", Array<FavBeer>::class, "fav beers")
+                getRequest("/fav_beer", Array<FavBeer>::class, "fav_beers")
             }
             _uiState.update { currentState ->
                 currentState.copy(

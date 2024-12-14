@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -44,6 +45,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import kotlin.math.roundToInt
@@ -105,9 +111,16 @@ class BeerActivity : ComponentActivity() {
 fun BeerRatingElement(modifier: Modifier = Modifier, viewModel: BeerViewModel)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    var nameFilter by remember { mutableStateOf("") }
+    TextField(value = nameFilter, onValueChange = {nameFilter = it}, label = {Text("Find Beer")}, modifier = Modifier.fillMaxWidth(1f))
+    var filteredBeers = uiState.value.beers
+    if(nameFilter != "")
+    {
+        filteredBeers = uiState.value.beers.filter { it.name.toLowerCase().contains(nameFilter.toLowerCase()) }.toTypedArray()
+    }
     LazyColumn(Modifier.padding((16.dp)))
     {
-        items(uiState.value.beers)
+        items(filteredBeers)
         { beer ->
             Card(Modifier.padding(12.dp).fillParentMaxWidth(1.0f))
             {
