@@ -120,7 +120,7 @@ class MeetingActivity : ComponentActivity() {
 @Composable
 fun MeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
-    Column(modifier = Modifier.verticalScroll(rememberScrollState()).height(1400.dp)
+    Column(modifier = Modifier.verticalScroll(rememberScrollState()).height(1200.dp)
     ) {
         Text("Time and Date", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
         DateSelect(modifier, viewModel)
@@ -146,7 +146,7 @@ fun UserSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 
     // Filtering search with name
     var nameFilter by remember { mutableStateOf("") }
-    Card(modifier = modifier.fillMaxWidth(1f).height(500.dp))
+    Card(modifier = modifier.fillMaxWidth(1f).height(300.dp))
     {
         TextField(value = nameFilter, onValueChange = {nameFilter = it}, label = {Text("Find User")}, modifier = Modifier.fillMaxWidth(1f))
         LazyColumn()
@@ -281,13 +281,18 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     {
         Spacer(Modifier.weight(1f))
 
-        Text(text = isoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center)
+        Text(text = "Start: " + isoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center)
+
         Spacer(Modifier.weight(1f))
-        Button(onClick = { viewModel.findTime() }) { Text("Find Time") }
-        Spacer(Modifier.weight(1f))
-        Text(text = isoTimeString(uiState.value.meetingData.end))
+        Text(text = "End: " +  isoTimeString(uiState.value.meetingData.end))
         Spacer(Modifier.weight(1f))
 
+    }
+    HorizontalDivider()
+    Row(Modifier.padding(top = 20.dp)) {
+        Spacer(Modifier.weight(1f))
+        Button(onClick = { viewModel.findTime() }) { Text("Automatically find Time that fits all participants") }
+        Spacer(Modifier.weight(1f))
     }
 
 }
@@ -409,7 +414,7 @@ fun PubCard(modifier: Modifier = Modifier, viewModel: MeetingViewmodel, pub: Pub
         Column(Modifier.padding(8.dp)) {
             Row()
             {
-                Column()
+                Column(Modifier.width(200.dp))
                 {
                     Text(text = pub.name)
                     Text(text = pub.address)

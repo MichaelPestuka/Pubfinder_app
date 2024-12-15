@@ -96,7 +96,6 @@ abstract class BaseViewmodel : ViewModel() {
      * @param url request URL
      */
     protected fun deleteRequest(url: String): String {
-        Log.d("request: ", "DELETE " + url)
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "DELETE"
         return connection.responseCode.toString()

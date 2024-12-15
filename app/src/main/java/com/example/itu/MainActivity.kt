@@ -5,7 +5,6 @@ package com.example.itu
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -14,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -48,7 +49,6 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
-
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED)
             {
@@ -65,12 +65,12 @@ class MainActivity : ComponentActivity() {
             ITUTheme {
                 Scaffold(
                     bottomBar = {
-                        Row(modifier = Modifier.padding(bottom = 20.dp))
+                        HorizontalDivider(Modifier.padding(bottom = 8.dp))
+                        Row(modifier = Modifier.padding(bottom = 48.dp).padding(horizontal = 8.dp))
                         {
                             // Create new meeting, creates on server then edits
                             Button(
                                 onClick = {
-                                    Log.d("Clicked: ", "Yes...")
                                     val job = GlobalScope.launch(Dispatchers.IO)
                                     {
                                         viewModel.NewMeeting()
@@ -78,29 +78,30 @@ class MainActivity : ComponentActivity() {
                                     job.invokeOnCompletion {
                                         Intent(applicationContext, MeetingActivity::class.java).also {
                                             it.putExtra("ExistingMeetingID", viewModel.uiState.value.last_meeting_id + 1)
-
                                             startActivity(it)
                                         }
                                     }
 
                                 },
-                                modifier = Modifier.weight(1f)
                             )
                             {
                                 Text("New Meeting")
                             }
+
+                            Spacer(Modifier.weight(1f))
 
                             // open calendar
                             Button(
                                 onClick = {
                                     Intent(applicationContext, CalendarActivity::class.java).also {
                                         startActivity(it)
-                                    }},
-                                modifier = Modifier.weight(1f)
+                                    }}
                             )
                             {
                                 Text("Calendar")
                             }
+
+                            Spacer(Modifier.weight(1f))
 
                             // Open beer rating
                             Button(
@@ -108,8 +109,7 @@ class MainActivity : ComponentActivity() {
                                     Intent(applicationContext, BeerActivity::class.java).also {
                                         startActivity(it)
                                     }
-                                },
-                                modifier = Modifier.weight(1f)
+                                }
                             )
                             {
                                 Text("My Beers")

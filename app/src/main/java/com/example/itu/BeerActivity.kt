@@ -110,7 +110,7 @@ fun BeerRatingElement(modifier: Modifier = Modifier, viewModel: BeerViewModel)
     {
         items(filteredBeers)
         { beer ->
-            Card(Modifier.padding(12.dp).fillParentMaxWidth(1.0f))
+            Card(Modifier.padding(6.dp).fillParentMaxWidth(1.0f))
             {
                 Row()
                 {

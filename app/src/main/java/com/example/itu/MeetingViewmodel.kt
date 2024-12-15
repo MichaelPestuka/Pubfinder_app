@@ -32,10 +32,18 @@ data class MeetingState
     var drinkList: MutableList<DrinkList> = ArrayList()
 )
 
+/**
+ * Viewmodel for editing a meeting
+ */
 class MeetingViewmodel : BaseViewmodel() {
     private val _uiState = MutableStateFlow(MeetingState())
     val uiState: StateFlow<MeetingState> = _uiState.asStateFlow()
 
+    /**
+     * Changes time
+     * @param floatTime Time in fraction of day
+     * @param which change start or end
+     */
     fun setNewTime(floatTime: Float, which: String = "start")
     {
         if(which == "start")
@@ -54,6 +62,9 @@ class MeetingViewmodel : BaseViewmodel() {
         putAndFetch()
     }
 
+    /**
+     * Changes Year, day or month
+     */
     fun setNewDate(value: Int, type: String)
     {
         uiState.value.meetingData.begin = changeDate(value, type, LocalDateTime.parse(uiState.value.meetingData.begin)).format(
@@ -63,11 +74,17 @@ class MeetingViewmodel : BaseViewmodel() {
         putAndFetch()
     }
 
+    /**
+     * Checks if a user is participant of meeting
+     */
     fun isParticipant(user: User): Boolean
     {
         return uiState.value.participants.any { user.id == it.id }
     }
 
+    /**
+     * Flips invite state of user
+     */
     fun changeInviteState(user: User)
     {
         if(uiState.value.participants.any { user.id == it.id })
@@ -91,8 +108,12 @@ class MeetingViewmodel : BaseViewmodel() {
         fetchData()
     }
 
+    /**
+     * Gets all relevant data from server
+     */
     override fun fetchData() {
-        viewModelScope.launch {
+        // Get all info
+        val dataFetch = viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
                 getRequest("/meeting?id=" + uiState.value.meetingID, Meeting::class, "meeting")
@@ -125,6 +146,8 @@ class MeetingViewmodel : BaseViewmodel() {
             {
                 getRequest("/pub_drink_list", Array<DrinkList>::class, "pub drink lists")
             }
+
+
             _uiState.update { currentState ->
                 currentState.copy(
                     meetingData = result,
@@ -135,14 +158,33 @@ class MeetingViewmodel : BaseViewmodel() {
                     meetingTime = fullTimeFromIso(result.begin, result.end),
                     tagData = tags.toMutableList(),
                     beers = beers.toMutableList(),
-                    drinkList = drinkList.toMutableList()
+                    drinkList = drinkList.toMutableList(),
                 )
             }
-            findPub()
-
+        }
+        // Get best pub
+        viewModelScope.launch {
+            dataFetch.join()
+            val bestPubs = withContext(Dispatchers.IO)
+            {
+                var partArray = emptyArray<String>()
+                for(id in uiState.value.participants) {
+                    partArray += id.id
+                }
+                val json = postRequest("/pub_selector", PubSelectorInfo(partArray, emptyArray()), true)
+                parseJson(json, Array<String>::class, "top 5 pubs")
+            }
+            _uiState.update { currentState ->
+                currentState.copy(
+                    bestPubs = bestPubs.toMutableList()
+                )
+            }
         }
     }
 
+    /**
+     * Saves data to server, then fetches
+     */
     private fun putAndFetch() {
         viewModelScope.launch {
             withContext(Dispatchers.IO)
@@ -158,6 +200,9 @@ class MeetingViewmodel : BaseViewmodel() {
         }
     }
 
+    /**
+     * Returns beers
+     */
     fun getBeers(pubId: String): MutableList<Beer>
     {
         val relevant = uiState.value.drinkList.filter { it.pub_id == pubId }
@@ -169,33 +214,26 @@ class MeetingViewmodel : BaseViewmodel() {
         return beers
     }
 
+    /**
+     * Returns pubs
+     */
     fun getPubsByID(ids: MutableList<String>): MutableList<Pub>
     {
         return uiState.value.pubData.filter { it.id in ids }.toMutableList()
     }
 
+    /**
+     * Changes pub id and refreshes
+     */
     fun changePub(id: String)
     {
         uiState.value.meetingData.pub_id = id
         putAndFetch()
     }
 
-    private fun findPub() {
-        viewModelScope.launch {
-            val pubs = withContext(Dispatchers.IO)
-            {
-                postRequest("/pub_selector", PubSelectorInfo(uiState.value.meetingData.user, emptyArray()), true)
-            }
-            val bestPubs = parseJson(pubs, Array<String>::class, "top 5 pubs")
-            _uiState.update { currentState ->
-                currentState.copy(
-                    bestPubs = bestPubs.toMutableList()
-                )
-            }
-        }
-    }
-
-
+    /**
+     * Finds time that fits all users and sets it
+     */
     fun findTime()
     {
         viewModelScope.launch {
@@ -203,7 +241,6 @@ class MeetingViewmodel : BaseViewmodel() {
             {
                 var ids = emptyArray<String>()
                 for (user in _uiState.value.participants) {
-                    Log.d("id", user.id)
                     ids += user.id
                 }
                 val date =
@@ -216,7 +253,6 @@ class MeetingViewmodel : BaseViewmodel() {
                     _uiState.value.meetingData.begin
                 )
                 val time = postRequest("/get_common_time", info, true)
-                Log.d("time", time)
                 uiState.value.meetingData.begin = parseJson(time, String::class, "start")
                 uiState.value.meetingData.end = parseJson(time, String::class, "end")
                 putAndFetch()
