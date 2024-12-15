@@ -1,14 +1,10 @@
+/**
+ * @author Michael Peštuka (xpestu01)
+ */
+
 package com.example.itu
 
-import android.media.Rating
-import android.util.Log
-import androidx.collection.emptyLongSet
-import androidx.compose.material3.TimePickerState
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.itu.com.example.itu.Meeting
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,18 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
-import kotlin.reflect.KClass
 
 data class BeerState
     (
     var currentUser: User = User(),
-    var beers: Array<Beer> = emptyArray<Beer>(),
-    var ratings: Array<FavBeer> = emptyArray<FavBeer>(),
+    var beers: MutableList<Beer> = ArrayList(),
+    var ratings: MutableList<FavBeer> = ArrayList(),
     )
 
 class BeerViewModel : BaseViewmodel() {
@@ -39,13 +29,19 @@ class BeerViewModel : BaseViewmodel() {
         fetchData()
     }
 
+    /**
+     * Fetch all relevant data from server
+     */
     override fun fetchData()
     {
-        GetAllBeers()
-        GetBeerRatings(_uiState.value.currentUser)
+        getAllBeers()
+        getBeerRatings()
     }
 
-    public fun GetAllBeers() {
+    /**
+     * Fetches list of all beers from server
+     */
+    private fun getAllBeers() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
@@ -53,13 +49,16 @@ class BeerViewModel : BaseViewmodel() {
             }
             _uiState.update { currentState ->
                 currentState.copy(
-                    beers = result,
+                    beers = result.toMutableList(),
                 )
             }
         }
     }
 
-    public fun GetBeerRatings(user: User) {
+    /**
+     * Fetches list of all ratings from server
+     */
+    private fun getBeerRatings() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
@@ -67,29 +66,19 @@ class BeerViewModel : BaseViewmodel() {
             }
             _uiState.update { currentState ->
                 currentState.copy(
-                    ratings = result,
+                    ratings = result.toMutableList(),
                 )
             }
         }
     }
 
-    // TODO
-    public fun SortRatings(method: String)
+    /**
+     * Gets current user's rating of a specific beer
+     * @param beerId id of beer
+     */
+    fun getRating(beerId : String) : Float
     {
-        if(method == "rating") {
-            _uiState.value.ratings.sortBy { it.rating }
-        }
-        if(method == "name") {
-            _uiState.value.beers.sortBy { it.name }
-        }
-        if(method == "rating") {
-            _uiState.value.ratings.sortBy { it.rating }
-        }
-    }
-
-    public fun GetRating(beer_id : String) : Float
-    {
-        val foundRatings = _uiState.value.ratings.filter { it.beer_id == beer_id }.filter { it.user_id == _uiState.value.currentUser.id }
+        val foundRatings = _uiState.value.ratings.filter { it.beer_id == beerId }.filter { it.user_id == _uiState.value.currentUser.id }
         if(foundRatings.isEmpty())
         {
             return 0.0f
@@ -97,26 +86,30 @@ class BeerViewModel : BaseViewmodel() {
         return foundRatings.first().rating.toFloat()
     }
 
-    public fun SetRating(beer_id: String, rating : Float)
+    /**
+     * Sets current user's rating of a specific beer
+     * @param beerId id of beer
+     * @param rating rating of 0 - 5
+     */
+    fun setRating(beerId: String, rating : Float)
     {
         viewModelScope.launch {
-            val ownerData = withContext(Dispatchers.IO)
+            withContext(Dispatchers.IO)
             {
-                val foundRatings = _uiState.value.ratings.filter { it.beer_id == beer_id }
+                val foundRatings = _uiState.value.ratings.filter { it.beer_id == beerId }
                     .filter { it.user_id == _uiState.value.currentUser.id }
                 if (foundRatings.isEmpty()) {
-                    PostRequest(
+                    postRequest(
                         "/fav_beer",
-                        FavBeer(beer_id = beer_id, user_id = _uiState.value.currentUser.id, rating = rating.toString())
+                        FavBeer(beer_id = beerId, user_id = _uiState.value.currentUser.id, rating = rating.toString())
                     )
                 } else {
                     foundRatings.first().rating = rating.toString()
-                    PutRequest("/fav_beer/" + _uiState.value.currentUser.id + "/" + beer_id, foundRatings.first())
+                    putRequest("/fav_beer/" + _uiState.value.currentUser.id + "/" + beerId, foundRatings.first())
 
                 }
-                GetBeerRatings(_uiState.value.currentUser)
+                getBeerRatings()
             }
         }
-//        fetchData()
     }
 }

@@ -1,94 +1,72 @@
+/**
+ * @author Michael Peštuka (xpestu01)
+ */
+
 package com.example.itu
 
-import android.app.LauncherActivity.ListItem
-import android.content.Context
-import android.content.Intent
 import android.content.res.Resources.getSystem
 import android.os.Bundle
-import android.util.Log
-import android.widget.RatingBar
-import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat.startActivityForResult
-import androidx.core.content.ContextCompat.startActivity
-import com.example.itu.ui.theme.ITUTheme
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.launch
-import kotlin.random.Random
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.KeyboardArrowLeft
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.example.itu.ui.theme.ITUTheme
 import com.example.itu.ui.theme.Typography
+import kotlinx.coroutines.launch
+import java.time.Month
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 
-
+/**
+ * Activity where user manages time blocks on specific dates
+ */
 class CalendarActivity : ComponentActivity() {
-
-    val viewModel: CalendarViewModel by viewModels()
+    private val viewModel: CalendarViewModel by viewModels()
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -109,69 +87,77 @@ class CalendarActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = {Text("Calendar")})
+                            title = {Text("Calendar - Times when I'm busy")})
                     },
                     modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(modifier = Modifier.padding(innerPadding),)
+                    Column(modifier = Modifier.padding(innerPadding))
                     {
                         MonthSelector(modifier = Modifier.height(32.dp), viewModel = viewModel)
+
                         LazyRow(modifier = Modifier.padding(start = 16.dp))
                         {
-                            items(30)
+                            // Display columns depending on month days
+                            items(viewModel.uiState.value.displayedDate.month.length(false))
                             { day ->
                                 Column()
                                 {
-                                    Text((day + 1).toString(), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(1f).height(24.dp))
+                                    // Day number
+                                    Text((day + 1).toString() + ".", textAlign = TextAlign.Center, modifier = Modifier.width(128.dp).height(24.dp))
                                     CalendarColumn(viewModel = viewModel, day = (day + 1).toString())
                                 }
                             }
                         }
                     }
-                    Column(modifier = Modifier.width(32.dp).padding(innerPadding).padding(top = 60.dp, bottom = 28.dp))
-                    {
-                        repeat(24)
-                        { hour ->
-                            Text(text = hour.toString())
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
+
+                    TimeSidebar(innerPadding)
                 }
             }
         }
     }
-
     override fun onResume() {
         super.onResume()
         viewModel.fetchData()
     }
 }
 
+/**
+ * Component which displays current month and year and has buttons to change it
+ */
 @Composable
 fun MonthSelector(modifier: Modifier = Modifier, viewModel: CalendarViewModel)
 {
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+
     Row(modifier = modifier) {
-        Button(modifier = Modifier.weight(1f), onClick = {}) {
+        // subtract month
+        Button( onClick = { viewModel.changeDisplaymonth(-1) }) {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
         }
-//        Spacer(modifier = Modifier.weight(1f))
-        Text("December", modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = Typography.headlineMedium)
-//        Spacer(modifier = Modifier.weight(1f))
-        Button(modifier = Modifier.weight(1f), onClick = {}) {
+        Spacer(modifier = Modifier.weight(1f))
+        // display text
+        Text(text = Month.of(uiState.value.displayedDate.monthValue).getDisplayName(java.time.format.TextStyle.FULL, Locale.US) + " " + uiState.value.displayedDate.year.toString(),
+            textAlign = TextAlign.Center,
+            style = Typography.headlineMedium)
+        Spacer(modifier = Modifier.weight(1f))
+        // ad month
+        Button( onClick = {viewModel.changeDisplaymonth(1)}) {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
 }
 
+/**
+ * Column representing one day in calendar and displayed time blocks
+ * Start, end and whole block are movable, with time being updated once user lets go
+ */
 @Composable
 fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, day: String)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
-
-
     Box(modifier = Modifier.width(128.dp))
     {
-        var columnHeight = 1670
+        var columnHeight by remember { mutableIntStateOf(1714) }
         Column(Modifier
             .padding((16.dp))
             .fillMaxSize(1f)
@@ -180,6 +166,7 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
             }
         )
         {
+            // evenly spaced 24 dividers for 24 hours
             repeat(23)
             { number ->
                 HorizontalDivider(modifier, 1.dp, Color.Gray)
@@ -187,7 +174,6 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                     .weight(1f)
                     .fillMaxSize(1f)
                     .clickable {
-                        val newName = ""
                         viewModel.CreateDayItem(1, day.toInt(), number / 24f, (number + 1) / 24f)
                     }
                 )
@@ -197,7 +183,8 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
             Spacer(Modifier.weight(1f))
 
         }
-        for (tb in uiState.value.formattedCalendarItems.filter { it.day == day.toInt() }) {
+        // Display all time blocks for the day
+        for (tb in uiState.value.displayedCalendarItems.filter { it.day == day.toInt() }) {
             Column (Modifier.padding((16.dp)).fillMaxSize(1f))
             {
                 var offsetTop by remember { mutableFloatStateOf(columnHeight * tb.start) }
@@ -212,6 +199,7 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                         }
                     }
                 )
+                // Movable start bar
                 HorizontalDivider(modifier
                     .draggable(
                         orientation = Orientation.Vertical,
@@ -223,6 +211,8 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                         onDragStopped = { viewModel.UpdateDayItem(tb.id, newStart = offsetTop / columnHeight, updateEnd = false) }
                     )
                         , 6.dp, Color.Gray)
+
+                // Movable time block body
                 Card(modifier = Modifier
                     .height(abs(offsetBottom - offsetTop).dp / getSystem().displayMetrics.density)
                     .fillMaxWidth(1f)
@@ -231,7 +221,6 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                         state = rememberDraggableState { delta ->
                             offsetTop = min(max(0f, offsetTop + delta), columnHeight.toFloat() - itemSize)
                             offsetBottom = min(max(0f + itemSize, offsetBottom + delta), columnHeight.toFloat())
-
                             tb.positionChanged = true
                         },
                         onDragStopped = { viewModel.UpdateDayItem(tb.id, newStart = offsetTop / columnHeight, newEnd = offsetBottom / columnHeight) }
@@ -243,7 +232,13 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                     shape = RectangleShape
 
                 )
-                {  }
+                {
+                    Text(printFloatTime(offsetTop / columnHeight), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(1f))
+                    Spacer(Modifier.weight(1f))
+                    Text(printFloatTime(offsetBottom / columnHeight), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(1f))
+                }
+
+                // Movable end bar
                 HorizontalDivider(modifier.draggable(
                     orientation = Orientation.Vertical,
                     state = rememberDraggableState { delta ->
@@ -260,31 +255,18 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NameDialogue(
-    title: String = "Name this time slot",
-    setName: (name: String) -> Unit
-
-)
+fun TimeSidebar(innerPadding: PaddingValues)
 {
-    BasicAlertDialog(
-        onDismissRequest = {setName("Unnamed")}
-    )
+    Column(modifier = Modifier.width(32.dp).padding(innerPadding).padding(top = 60.dp, bottom = 28.dp))
     {
-        val text = remember { mutableStateOf("")}
-        Text(title)
-        TextField(value = text.value,
-            onValueChange = {
-                if(it.length < 20) {
-                    text.value = it
-                }
-            }
-        )
+        repeat(24)
+        { hour ->
+            Text(text = hour.toString())
+            Spacer(modifier = Modifier.weight(1f))
+        }
     }
 }
-
-
 
 
 

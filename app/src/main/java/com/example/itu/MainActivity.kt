@@ -12,6 +12,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -93,7 +94,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.weight(1f)
                             )
                             {
-                                Text("New Meeting", color = Color.Black)
+                                Text("New Meeting")
                             }
 
                             Button(
@@ -104,7 +105,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.weight(1f)
                             )
                             {
-                                Text("Calendar", color = Color.Black)
+                                Text("Calendar")
                             }
 
                             Button(
@@ -119,7 +120,7 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.weight(1f)
                             )
                             {
-                                Text("My Beers", color = Color.Black)
+                                Text("My Beers")
                             }
                         }
                     },
@@ -182,7 +183,8 @@ fun MeetingList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMee
                 {
                     Button(onClick = { viewModel.DeleteMeeting(meeting.id) },
                         modifier = Modifier.padding(6.dp).width(96.dp).height(96.dp),
-                        shape = RoundedCornerShape(10)
+                        shape = RoundedCornerShape(10),
+                        contentPadding = PaddingValues(8.dp)
                     )
                     {
                         Text("Confirm?")
@@ -191,7 +193,9 @@ fun MeetingList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMee
                 else {
                     Button(onClick = { viewModel.ConfirmDeletion(meeting.id) },
                         modifier = Modifier.padding(6.dp).width(96.dp).height(96.dp),
-                        shape = RoundedCornerShape(10))
+                        shape = RoundedCornerShape(10),
+                        contentPadding = PaddingValues(8.dp)
+                    )
                     {
                         Text("Delete")
                     }

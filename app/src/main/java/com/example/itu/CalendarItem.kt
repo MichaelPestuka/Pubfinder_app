@@ -17,6 +17,8 @@ class CalendarItem(
 class FormattedCalendarItem(
     var id: String,
     var day: Int,
+    var month: Int,
+    var year: Int,
     var start: Float,
     var end: Float,
     var length: Float,

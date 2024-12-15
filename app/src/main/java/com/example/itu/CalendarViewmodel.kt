@@ -1,17 +1,9 @@
 package com.example.itu
 
-import android.media.Rating
 import android.util.Log
-import androidx.collection.emptyLongSet
-import androidx.compose.material3.TimePickerState
-import androidx.core.text.buildSpannedString
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itu.com.example.itu.CalendarItem
 import com.example.itu.com.example.itu.FormattedCalendarItem
-import com.example.itu.com.example.itu.Meeting
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,22 +11,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.reflect.KClass
 
 
 data class CalendarState
     (
     var currentUser: User = User(),
     var calendarItems: Array<CalendarItem> = emptyArray<CalendarItem>(),
-            var formattedCalendarItems: Array<FormattedCalendarItem> = emptyArray()
+            var formattedCalendarItems: Array<FormattedCalendarItem> = emptyArray(),
+    var displayedCalendarItems: Array<FormattedCalendarItem> = emptyArray(),
+            var displayedDate: LocalDateTime = LocalDateTime.now()
     )
 
 class CalendarViewModel : BaseViewmodel() {
@@ -65,6 +52,7 @@ class CalendarViewModel : BaseViewmodel() {
                     formattedCalendarItems = FormatCalendar(result)
                 )
             }
+            GetVisibleItems()
         }
     }
 
@@ -74,10 +62,13 @@ class CalendarViewModel : BaseViewmodel() {
         var formatted = emptyArray<FormattedCalendarItem>()
         for(item in raw)
         {
-            val start = LocalDateTime.parse(item.begin).hour + LocalDateTime.parse(item.begin).minute.toFloat() / 60
-            val end = LocalDateTime.parse(item.end).hour  + LocalDateTime.parse(item.end).minute.toFloat() / 60
+            val start = LocalDateTime.parse(item.begin).hour.toFloat() + LocalDateTime.parse(item.begin).minute.toFloat() / 60f
+            val end = LocalDateTime.parse(item.end).hour.toFloat()  + LocalDateTime.parse(item.end).minute.toFloat() / 60f
+            Log.d("formatted to", start.toString())
             val day = LocalDateTime.parse(item.begin).dayOfMonth
-            formatted += FormattedCalendarItem(item.id, day, start / 24f, end / 24f, 0f)
+            val month = LocalDateTime.parse(item.begin).monthValue
+            val year = LocalDateTime.parse(item.begin).year
+            formatted += FormattedCalendarItem(item.id, day, month, year, start / 24f, end / 24f, 0f)
 //            if(_uiState.value.formattedCalendarItems.filter { it.id == item.id }.isNotEmpty())
 //            {
 //                formatted.last().positionChanged = true
@@ -87,10 +78,26 @@ class CalendarViewModel : BaseViewmodel() {
         return formatted
     }
 
-    public fun GetDayItems(date: Int) : List<FormattedCalendarItem>
+    public fun GetVisibleItems()
     {
-        val dayItems = _uiState.value.formattedCalendarItems.filter { it.day == date }
-        return dayItems
+        val items = _uiState.value.formattedCalendarItems.filter { it.month == uiState.value.displayedDate.monthValue
+                && it.year == uiState.value.displayedDate.year }
+        _uiState.update { currentState ->
+            currentState.copy(
+                displayedCalendarItems = items.toTypedArray()
+            )
+        }
+    }
+
+    public fun changeDisplaymonth(value: Int)
+    {
+        val newDate = uiState.value.displayedDate.plusMonths(value.toLong())
+        _uiState.update { currentState ->
+            currentState.copy(
+                displayedDate = newDate
+            )
+        }
+        GetVisibleItems()
     }
 
     public fun UpdateDayItem(id: String, newStart: Float = 0f, newEnd: Float = 0f, updateEnd: Boolean = true, updateStart: Boolean = true)
@@ -127,7 +134,7 @@ class CalendarViewModel : BaseViewmodel() {
                         .format(DateTimeFormatter.ISO_DATE_TIME)
                 }
 
-                PutRequest("/timetable_item/" + id, original)
+                putRequest("/timetable_item/" + id, original)
                 GetCalendarItems()
             }
         }
@@ -137,7 +144,7 @@ class CalendarViewModel : BaseViewmodel() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                DeleteRequest("/timetable_item/" + id)
+                deleteRequest("/timetable_item/" + id)
                 GetCalendarItems()
             }
         }
@@ -149,10 +156,12 @@ class CalendarViewModel : BaseViewmodel() {
             val result = withContext(Dispatchers.IO)
             {
                 Log.d("creating", start.toString() + " to " + end.toString())
-                var startDateTime = LocalDateTime.of(2024, month, day, (start * 24).toInt(), 0).format(DateTimeFormatter.ISO_DATE_TIME)
-                var endDateTime = LocalDateTime.of(2024, month, day, (end * 24).toInt(), 0).format(DateTimeFormatter.ISO_DATE_TIME)
+                var startDateTime = uiState.value.displayedDate.withDayOfMonth(day).withHour((start * 24).toInt()).format(
+                    DateTimeFormatter.ISO_DATE_TIME)
+                var endDateTime = uiState.value.displayedDate.withDayOfMonth(day).withHour(1 +(start * 24).toInt()).format(
+                    DateTimeFormatter.ISO_DATE_TIME)
                 var calendarItem = CalendarItem(begin = startDateTime, end = endDateTime, user_id = _uiState.value.currentUser.id)
-                PostRequest("/timetable_item", calendarItem)
+                postRequest("/timetable_item", calendarItem)
                 GetCalendarItems()
             }
         }

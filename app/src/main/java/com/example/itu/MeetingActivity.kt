@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -75,6 +76,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.toLowerCase
 import java.time.LocalDateTime
@@ -130,7 +132,7 @@ class MeetingActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun MeeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
-    Column(modifier = Modifier.verticalScroll(rememberScrollState()).height(2000.dp)
+    Column(modifier = Modifier.verticalScroll(rememberScrollState()).height(1400.dp)
     ) {
         Text("Time and Date", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
         DateSelect(modifier, viewModel)
@@ -269,11 +271,11 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     {
         Spacer(Modifier.weight(1f))
 
-        Text(text = IsoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center, color = Color.White)
+        Text(text = IsoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
         Button(onClick = { viewModel.findTime() }) { Text("Find Time") }
         Spacer(Modifier.weight(1f))
-        Text(text = IsoTimeString(uiState.value.meetingData.end), color = Color.White)
+        Text(text = IsoTimeString(uiState.value.meetingData.end))
         Spacer(Modifier.weight(1f))
 
     }
@@ -295,7 +297,6 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
         }
         Text(uiState.value.meetingTime.year.toString(),
             textAlign = TextAlign.Center,
-            color = Color.White,
             modifier = Modifier.weight(1f),
         )
         Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year + 1, "year")},
@@ -314,7 +315,6 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
         }
         Text(Month.of(uiState.value.meetingTime.month.toInt()).getDisplayName(TextStyle.FULL, Locale.US),
             textAlign = TextAlign.Center,
-            color = Color.White,
             modifier = Modifier.weight(1f))
         Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month + 1, "month")},
             modifier = Modifier.weight(1f))
@@ -331,7 +331,6 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
         }
         Text(uiState.value.meetingTime.day.toString(),
             textAlign = TextAlign.Center,
-            color = Color.White,
             modifier = Modifier.weight(1f))
         Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day + 1, "day")},
             modifier = Modifier.weight(1f))
@@ -389,19 +388,33 @@ fun PubCard(modifier: Modifier = Modifier, viewModel: MeetingViewmodel, pub: Pub
                 }
                 Spacer(Modifier.weight(1f))
                 if (recommended) {
-                    Icon(imageVector = Icons.Outlined.Star, contentDescription = null)
+                    Icon(
+                        imageVector = Icons.Outlined.Star,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
-                if(uiState.value.meetingData.pub_id == pub.id)
-                {
-                    Icon(imageVector = Icons.Outlined.Check, contentDescription = null)
-                }
+
             }
 
-            HorizontalDivider(Modifier.padding(vertical =  8.dp))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
             val onTap = viewModel.getBeers(pub.id)
             for (beer in onTap) {
                 Text(beer.name + " " + beer.degree + "°")
+            }
+            if (uiState.value.meetingData.pub_id == pub.id) {
+                Spacer(Modifier.weight(1f))
+                Row()
+                {
+
+                    Spacer(Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.Outlined.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp)
+                    )
+                }
             }
         }
     }

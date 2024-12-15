@@ -87,7 +87,7 @@ class MeetingViewmodel : BaseViewmodel() {
             viewModelScope.launch {
                 val result = withContext(Dispatchers.IO)
                 {
-                    DeleteRequest("/meeting_participant/" + user.id + "/" + uiState.value.meetingID)
+                    deleteRequest("/meeting_participant/" + user.id + "/" + uiState.value.meetingID)
                 }
             }
         }
@@ -96,7 +96,7 @@ class MeetingViewmodel : BaseViewmodel() {
             viewModelScope.launch {
                 val result = withContext(Dispatchers.IO)
                 {
-                    PostRequest("/meeting_participant", MeetingParticipant(user.id, uiState.value.meetingID.toString()))
+                    postRequest("/meeting_participant", MeetingParticipant(user.id, uiState.value.meetingID.toString()))
                 }
             }
         }
@@ -159,7 +159,7 @@ class MeetingViewmodel : BaseViewmodel() {
         viewModelScope.launch {
             val ownerData = withContext(Dispatchers.IO)
             {
-                PutRequest(
+                putRequest(
                     "/meeting/" + uiState.value.meetingID,
                     uiState.value.meetingData
                 )
@@ -211,9 +211,9 @@ class MeetingViewmodel : BaseViewmodel() {
         viewModelScope.launch {
             val pubs = withContext(Dispatchers.IO)
             {
-                PostRequest("/pub_selector", PubSelectorInfo(uiState.value.meetingData.user, emptyArray()), true)
+                postRequest("/pub_selector", PubSelectorInfo(uiState.value.meetingData.user, emptyArray()), true)
             }
-            val bestPubs = ParseJson(pubs, Array<String>::class, "top 5 pubs")
+            val bestPubs = parseJson(pubs, Array<String>::class, "top 5 pubs")
             _uiState.update { currentState ->
                 currentState.copy(
                     bestPubs = bestPubs
@@ -242,10 +242,10 @@ class MeetingViewmodel : BaseViewmodel() {
                     date.format(DateTimeFormatter.ISO_DATE_TIME),
                     _uiState.value.meetingData.begin
                 )
-                val time = PostRequest("/get_common_time", info, true)
+                val time = postRequest("/get_common_time", info, true)
                 Log.d("time", time)
-                uiState.value.meetingData.begin = ParseJson(time, String::class, "start")
-                uiState.value.meetingData.end = ParseJson(time, String::class, "end")
+                uiState.value.meetingData.begin = parseJson(time, String::class, "start")
+                uiState.value.meetingData.end = parseJson(time, String::class, "end")
                 putAndFetch()
             }
         }

@@ -1,12 +1,7 @@
 package com.example.itu
 
-import android.util.Log
-import androidx.compose.material3.TimePickerState
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.itu.com.example.itu.Meeting
-import com.google.gson.Gson
-import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,14 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.InputStreamReader
-import java.io.OutputStream
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.reflect.KClass
 
 data class HomeState
     (
@@ -121,7 +110,7 @@ class HomeViewModel : BaseViewmodel() {
             begin = LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
             end = LocalDateTime.now().plusHours(1).format(DateTimeFormatter.ISO_DATE_TIME)
         )
-        PostRequest("/meeting", new)
+        postRequest("/meeting", new)
     }
 
     public fun ConfirmDeletion(id: String)
@@ -138,7 +127,7 @@ class HomeViewModel : BaseViewmodel() {
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO)
             {
-                DeleteRequest("/meeting/" + id)
+                deleteRequest("/meeting/" + id)
             }
             fetchData()
         }

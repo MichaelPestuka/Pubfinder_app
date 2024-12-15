@@ -25,6 +25,13 @@ public fun IsoTimeString(iso: String): String
     }
 }
 
+public fun printFloatTime(time: Float): String
+{
+    val time = ChangeTime(time, LocalDateTime.now())
+    return String.format("%02d:%02d", time.hour, time.minute)
+
+}
+
 public fun ChangeTime(floatTime: Float, currentTime: LocalDateTime) : LocalDateTime
 {
     var minutes = (floatTime * 24 - (floatTime * 24).toInt()) * 60
