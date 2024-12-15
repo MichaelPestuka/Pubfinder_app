@@ -1,7 +1,7 @@
 package com.example.itu
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
-import com.example.itu.com.example.itu.Meeting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,12 +14,12 @@ import java.time.format.DateTimeFormatter
 
 data class HomeState
     (
-        var currentUser: User = User(),
-            var users: Array<User> = emptyArray<User>(),
-            var meetings: Array<Meeting> = emptyArray<Meeting>(),
-            var pubs: Array<Pub> = emptyArray<Pub>(),
-            var last_meeting_id: Int = 0,
-            var confirm_delete: String = ""
+    var currentUser: User = User(),
+    var users: Array<User> = emptyArray<User>(),
+    var meetings: Array<Meeting> = emptyArray<Meeting>(),
+    var pubs: Array<Pub> = emptyArray<Pub>(),
+    var last_meeting_id: Int = 0,
+    var confirm_delete: String = ""
     )
 
 class HomeViewModel : BaseViewmodel() {
@@ -59,10 +59,20 @@ class HomeViewModel : BaseViewmodel() {
             {
                 getRequest("/meeting", Array<Meeting>::class, "meetings")
             }
+            var last = 0
+            if(result.isEmpty())
+            {
+                last = 0
+            }
+            else
+            {
+                last = result.last().id.toInt()
+            }
+            Log.d("len meet", result.size.toString())
             _uiState.update { currentState ->
                 currentState.copy(
                     meetings = result,
-                    last_meeting_id = result.last().id.toInt(),
+                    last_meeting_id = last,
                     confirm_delete = "0"
                 )
             }

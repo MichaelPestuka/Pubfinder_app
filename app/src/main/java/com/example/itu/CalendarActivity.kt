@@ -130,7 +130,7 @@ fun MonthSelector(modifier: Modifier = Modifier, viewModel: CalendarViewModel)
 
     Row(modifier = modifier) {
         // subtract month
-        Button( onClick = { viewModel.changeDisplaymonth(-1) }) {
+        Button( onClick = { viewModel.changeDisplayMonth(-1) }) {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
         }
         Spacer(modifier = Modifier.weight(1f))
@@ -140,7 +140,7 @@ fun MonthSelector(modifier: Modifier = Modifier, viewModel: CalendarViewModel)
             style = Typography.headlineMedium)
         Spacer(modifier = Modifier.weight(1f))
         // ad month
-        Button( onClick = {viewModel.changeDisplaymonth(1)}) {
+        Button( onClick = {viewModel.changeDisplayMonth(1)}) {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
@@ -174,7 +174,7 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                     .weight(1f)
                     .fillMaxSize(1f)
                     .clickable {
-                        viewModel.CreateDayItem(1, day.toInt(), number / 24f, (number + 1) / 24f)
+                        viewModel.createDayItem(1, day.toInt(), number / 24f, (number + 1) / 24f)
                     }
                 )
 
@@ -208,7 +208,7 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                             itemSize = offsetBottom - offsetTop
                             tb.positionChanged = true
                         },
-                        onDragStopped = { viewModel.UpdateDayItem(tb.id, newStart = offsetTop / columnHeight, updateEnd = false) }
+                        onDragStopped = { viewModel.updateDayItem(tb.id, newStart = offsetTop / columnHeight, updateEnd = false) }
                     )
                         , 6.dp, Color.Gray)
 
@@ -223,10 +223,10 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                             offsetBottom = min(max(0f + itemSize, offsetBottom + delta), columnHeight.toFloat())
                             tb.positionChanged = true
                         },
-                        onDragStopped = { viewModel.UpdateDayItem(tb.id, newStart = offsetTop / columnHeight, newEnd = offsetBottom / columnHeight) }
+                        onDragStopped = { viewModel.updateDayItem(tb.id, newStart = offsetTop / columnHeight, newEnd = offsetBottom / columnHeight) }
                     )
                     .clickable {
-                        viewModel.DeleteDayItem(tb.id)
+                        viewModel.deleteDayItem(tb.id)
                     }
                     .alpha(0.5f),
                     shape = RectangleShape
@@ -246,7 +246,7 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                         itemSize = offsetBottom - offsetTop
                         tb.positionChanged = true
                     },
-                    onDragStopped = { viewModel.UpdateDayItem(tb.id, newEnd = offsetBottom / columnHeight, updateStart = false) }
+                    onDragStopped = { viewModel.updateDayItem(tb.id, newEnd = offsetBottom / columnHeight, updateStart = false) }
                 )
                 , 6.dp, Color.Red)
                 Spacer(modifier = Modifier.weight(1f))
@@ -255,6 +255,9 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
     }
 }
 
+/**
+ * Sidebar displaying hours to better see when something is
+ */
 @Composable
 fun TimeSidebar(innerPadding: PaddingValues)
 {

@@ -1,7 +1,8 @@
+/**
+ * @author Michael Peštuka (xpestu01)
+ */
 package com.example.itu
 
-import android.app.LauncherActivity.ListItem
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -9,13 +10,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -29,30 +28,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat.startActivityForResult
-import androidx.core.content.ContextCompat.startActivity
-import com.example.itu.ui.theme.ITUTheme
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.CoroutineScope
+import com.example.itu.ui.theme.ITUTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlin.random.Random
 
+/**
+ * Activity that lists all meetings, is entry point on launch
+ */
 class MainActivity : ComponentActivity() {
 
-    val viewModel: HomeViewModel by viewModels()
+    private val viewModel: HomeViewModel by viewModels()
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -75,6 +67,7 @@ class MainActivity : ComponentActivity() {
                     bottomBar = {
                         Row(modifier = Modifier.padding(bottom = 20.dp))
                         {
+                            // Create new meeting, creates on server then edits
                             Button(
                                 onClick = {
                                     Log.d("Clicked: ", "Yes...")
@@ -97,8 +90,9 @@ class MainActivity : ComponentActivity() {
                                 Text("New Meeting")
                             }
 
+                            // open calendar
                             Button(
-                                onClick = {Log.d("Clicked: ", "Yes...")
+                                onClick = {
                                     Intent(applicationContext, CalendarActivity::class.java).also {
                                         startActivity(it)
                                     }},
@@ -108,12 +102,10 @@ class MainActivity : ComponentActivity() {
                                 Text("Calendar")
                             }
 
+                            // Open beer rating
                             Button(
                                 onClick = {
-
-                                    Log.d("Clicked: ", "Yes...")
                                     Intent(applicationContext, BeerActivity::class.java).also {
-//                                    it.putExtra("ExistingMeetingID", 1)
                                         startActivity(it)
                                     }
                                 },
@@ -129,11 +121,10 @@ class MainActivity : ComponentActivity() {
                         title = {Text("My meetings")})
                     },
                     modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(                            modifier = Modifier.padding(innerPadding),)
+                    // List of meetings
+                    Column(modifier = Modifier.padding(innerPadding))
                     {
-
                         MeetingList(viewModel = viewModel, editMeetingFun = ::editMeeting)
-
                     }
                 }
             }
@@ -154,6 +145,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Component that lists all meetings, opens them for editing when clicked and has a delete button
+ */
 @Composable
 fun MeetingList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMeetingFun: (Int) -> Unit)
 {
@@ -179,6 +173,8 @@ fun MeetingList(modifier: Modifier = Modifier, viewModel: HomeViewModel, editMee
                         modifier.padding(4.dp)
                     )
                 }
+
+                // Delete and confirm delete buttons
                 if(uiState.value.confirm_delete == meeting.id)
                 {
                     Button(onClick = { viewModel.DeleteMeeting(meeting.id) },

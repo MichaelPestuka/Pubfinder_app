@@ -4,6 +4,7 @@
 
 package com.example.itu
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,9 @@ data class BeerState
     var ratings: MutableList<FavBeer> = ArrayList(),
     )
 
+/**
+ * Viewmodel for beer rating activity
+ */
 class BeerViewModel : BaseViewmodel() {
 
     private val _uiState = MutableStateFlow(BeerState())
@@ -104,10 +108,13 @@ class BeerViewModel : BaseViewmodel() {
                         FavBeer(beer_id = beerId, user_id = _uiState.value.currentUser.id, rating = rating.toString())
                     )
                 } else {
-                    foundRatings.first().rating = rating.toString()
-                    putRequest("/fav_beer/" + _uiState.value.currentUser.id + "/" + beerId, foundRatings.first())
+                    val newRating = foundRatings.first()
+                    newRating.rating = rating.toString()
+                    putRequest("/fav_beer/" + _uiState.value.currentUser.id + "/" + beerId, newRating)
 
                 }
+                Log.d("rating", rating.toString())
+
                 getBeerRatings()
             }
         }

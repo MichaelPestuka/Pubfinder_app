@@ -1,4 +1,7 @@
-package com.example.itu.com.example.itu
+/**
+ * @author Michael Peštuka (xpestu01)
+ */
+package com.example.itu
 
 import java.time.LocalDateTime
 import java.util.Date
@@ -13,6 +16,9 @@ class Meeting(
     var pub_name: String = "No name"
 )
 
+/**
+ * Class holding formatted time for display in UI
+ */
 class MeetingTime(
     var start: Float,
     var end: Float,
@@ -21,15 +27,18 @@ class MeetingTime(
     var month: Int,
     var day: Int
 )
-{
 
-}
-
+/**
+ * Class holding data for finding best pubs
+ */
 class PubSelectorInfo(
     var ids: Array<String>,
     var tag_ids: Array<String>
 )
 
+/**
+ * Class holding data for finding time to meet
+ */
 class CommonTimeInfo(
     var ids: Array<String>,
     var start_date: String,

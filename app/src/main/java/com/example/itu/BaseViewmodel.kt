@@ -44,6 +44,7 @@ abstract class BaseViewmodel : ViewModel() {
         inputStreamReader.close()
         inputSystem.close()
 
+        Log.d("ret", parsedData.toString())
         return parsedData
     }
 
@@ -80,24 +81,26 @@ abstract class BaseViewmodel : ViewModel() {
      * Sends a put request containing class data
      * @param url request URL
      * @param sentObject class that will be parsed into JSON and sent
+     * @return response code in String
      */
-    protected fun <T: Any> putRequest(url: String, sentObject: T) {
+    protected fun <T: Any> putRequest(url: String, sentObject: T): String {
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "PUT"
         connection.setRequestProperty("Content-type", "application/json; charset=utf-8")
         val serializedObject = Gson().toJson(sentObject)
         connection.outputStream.write(serializedObject.toByteArray())
+        return connection.responseCode.toString()
     }
 
     /**
      * Send a delete request to server
      * @param url request URL
      */
-    protected fun deleteRequest(url: String) {
+    protected fun deleteRequest(url: String): String {
         Log.d("request: ", "DELETE " + url)
         val connection = URL(apiUrl + url).openConnection() as HttpURLConnection
         connection.requestMethod = "DELETE"
-        Log.d("response: ", connection.responseCode.toString() + " - " + connection.responseMessage)
+        return connection.responseCode.toString()
     }
 
     /**
