@@ -1,3 +1,7 @@
+/**
+ * @author Michael Peštuka (xpestu01)
+ */
+
 package com.example.itu
 
 import android.util.Log
@@ -16,72 +20,60 @@ data class MeetingState
     (
     var meetingID: Int = 0,
     var meetingData: Meeting = Meeting(),
-    var pubData: Array<Pub> = emptyArray<Pub>(),
+    var pubData: MutableList<Pub> = ArrayList(),
     var ownerData: User = User(),
-    var users: Array<User> = emptyArray<User>(),
-    var participants: Array<User> = emptyArray<User>(),
+    var users: MutableList<User> = ArrayList(),
+    var participants: MutableList<User> = ArrayList(),
     var meetingTime: MeetingTime = MeetingTime(0f, 0f, false, 2024, 1, 1),
-    var tagData: Array<Tag> = emptyArray<Tag>(),
+    var tagData: MutableList<Tag> = ArrayList(),
     var newTime: String = "0:0",
-    var bestPubs: Array<String> = emptyArray(),
-    var beers: Array<Beer> = emptyArray(),
-    var drinkList: Array<DrinkList> = emptyArray()
-//    var meetings: Array<Meeting> = emptyArray<Meeting>(),
-//    var pubs: Array<Pub> = emptyArray<Pub>()
-
+    var bestPubs: MutableList<String> = ArrayList(),
+    var beers: MutableList<Beer> = ArrayList(),
+    var drinkList: MutableList<DrinkList> = ArrayList()
 )
 
 class MeetingViewmodel : BaseViewmodel() {
     private val _uiState = MutableStateFlow(MeetingState())
     val uiState: StateFlow<MeetingState> = _uiState.asStateFlow()
 
-    init
-    {
-
-    }
-
-    fun changeTime(floatTime: Float, which: String = "start")
+    fun setNewTime(floatTime: Float, which: String = "start")
     {
         if(which == "start")
         {
             val current = LocalDateTime.parse(uiState.value.meetingData.begin)
 
-            uiState.value.meetingData.begin =  ChangeTime(floatTime, current).format(DateTimeFormatter.ISO_DATE_TIME)
+            uiState.value.meetingData.begin =  changeTime(floatTime, current).format(DateTimeFormatter.ISO_DATE_TIME)
 
         }
         else
         {
             val current = LocalDateTime.parse(uiState.value.meetingData.end)
 
-            uiState.value.meetingData.end =  ChangeTime(floatTime, current).format(DateTimeFormatter.ISO_DATE_TIME)
+            uiState.value.meetingData.end =  changeTime(floatTime, current).format(DateTimeFormatter.ISO_DATE_TIME)
         }
         putAndFetch()
     }
 
-    fun changeDate(value: Int, type: String)
+    fun setNewDate(value: Int, type: String)
     {
-        uiState.value.meetingData.begin = ChangeDate(value, type, LocalDateTime.parse(uiState.value.meetingData.begin)).format(
+        uiState.value.meetingData.begin = changeDate(value, type, LocalDateTime.parse(uiState.value.meetingData.begin)).format(
             DateTimeFormatter.ISO_DATE_TIME)
-        uiState.value.meetingData.end = ChangeDate(value, type, LocalDateTime.parse(uiState.value.meetingData.end)).format(
+        uiState.value.meetingData.end = changeDate(value, type, LocalDateTime.parse(uiState.value.meetingData.end)).format(
             DateTimeFormatter.ISO_DATE_TIME)
         putAndFetch()
     }
 
     fun isParticipant(user: User): Boolean
     {
-        if(uiState.value.participants.filter { user.id == it.id }.isEmpty())
-        {
-            return false
-        }
-        return true
+        return uiState.value.participants.any { user.id == it.id }
     }
 
     fun changeInviteState(user: User)
     {
-        if(uiState.value.participants.filter { user.id == it.id }.isNotEmpty())
+        if(uiState.value.participants.any { user.id == it.id })
         {
             viewModelScope.launch {
-                val result = withContext(Dispatchers.IO)
+                withContext(Dispatchers.IO)
                 {
                     deleteRequest("/meeting_participant/" + user.id + "/" + uiState.value.meetingID)
                 }
@@ -90,7 +82,7 @@ class MeetingViewmodel : BaseViewmodel() {
         else
         {
             viewModelScope.launch {
-                val result = withContext(Dispatchers.IO)
+                withContext(Dispatchers.IO)
                 {
                     postRequest("/meeting_participant", MeetingParticipant(user.id, uiState.value.meetingID.toString()))
                 }
@@ -136,14 +128,14 @@ class MeetingViewmodel : BaseViewmodel() {
             _uiState.update { currentState ->
                 currentState.copy(
                     meetingData = result,
-                    pubData = pubData,
+                    pubData = pubData.toMutableList(),
                     ownerData = ownerData,
-                    participants = participants,
-                    users = users,
+                    participants = participants.toMutableList(),
+                    users = users.toMutableList(),
                     meetingTime = fullTimeFromIso(result.begin, result.end),
-                    tagData = tags,
-                    beers = beers,
-                    drinkList = drinkList
+                    tagData = tags.toMutableList(),
+                    beers = beers.toMutableList(),
+                    drinkList = drinkList.toMutableList()
                 )
             }
             findPub()
@@ -151,9 +143,9 @@ class MeetingViewmodel : BaseViewmodel() {
         }
     }
 
-    fun putAndFetch() {
+    private fun putAndFetch() {
         viewModelScope.launch {
-            val ownerData = withContext(Dispatchers.IO)
+            withContext(Dispatchers.IO)
             {
                 putRequest(
                     "/meeting/" + uiState.value.meetingID,
@@ -166,10 +158,10 @@ class MeetingViewmodel : BaseViewmodel() {
         }
     }
 
-    fun getBeers(pub_id: String): Array<Beer>
+    fun getBeers(pubId: String): MutableList<Beer>
     {
-        val relevant = uiState.value.drinkList.filter { it.pub_id == pub_id }
-        var beers = emptyArray<Beer>()
+        val relevant = uiState.value.drinkList.filter { it.pub_id == pubId }
+        val beers = ArrayList<Beer>()
         for(drink in relevant)
         {
             beers += uiState.value.beers.filter { it.id == drink.beer_id }
@@ -177,24 +169,9 @@ class MeetingViewmodel : BaseViewmodel() {
         return beers
     }
 
-    fun setMeetingID(id: Int)
+    fun getPubsByID(ids: MutableList<String>): MutableList<Pub>
     {
-        uiState.value.meetingID = id
-    }
-
-    fun getTagName(id: String): String
-    {
-        return uiState.value.pubData.filter { it.id == id }.first().name
-    }
-
-    fun getPubByID(id: String): Pub
-    {
-        return uiState.value.pubData.filter { it.id == id }.first()
-    }
-
-    fun getPubsByID(ids: Array<String>): Array<Pub>
-    {
-        return uiState.value.pubData.filter { it.id in ids }.toTypedArray()
+        return uiState.value.pubData.filter { it.id in ids }.toMutableList()
     }
 
     fun changePub(id: String)
@@ -203,7 +180,7 @@ class MeetingViewmodel : BaseViewmodel() {
         putAndFetch()
     }
 
-    fun findPub() {
+    private fun findPub() {
         viewModelScope.launch {
             val pubs = withContext(Dispatchers.IO)
             {
@@ -212,7 +189,7 @@ class MeetingViewmodel : BaseViewmodel() {
             val bestPubs = parseJson(pubs, Array<String>::class, "top 5 pubs")
             _uiState.update { currentState ->
                 currentState.copy(
-                    bestPubs = bestPubs
+                    bestPubs = bestPubs.toMutableList()
                 )
             }
         }
@@ -222,7 +199,7 @@ class MeetingViewmodel : BaseViewmodel() {
     fun findTime()
     {
         viewModelScope.launch {
-            val ownerData = withContext(Dispatchers.IO)
+            withContext(Dispatchers.IO)
             {
                 var ids = emptyArray<String>()
                 for (user in _uiState.value.participants) {
@@ -233,7 +210,7 @@ class MeetingViewmodel : BaseViewmodel() {
                     LocalDateTime.parse(_uiState.value.meetingData.begin).withHour(0).withMinute(0)
                         .withSecond(0)
 
-                var info = CommonTimeInfo(
+                val info = CommonTimeInfo(
                     ids,
                     date.format(DateTimeFormatter.ISO_DATE_TIME),
                     _uiState.value.meetingData.begin

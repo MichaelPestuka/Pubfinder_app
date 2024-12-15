@@ -1,34 +1,53 @@
+/**
+ * @author Michael Peštuka (xpestu01)
+ */
 package com.example.itu
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import java.util.Locale
 
-public fun IsoToFloatTime(iso: String) : Float
+/**
+ * Set of functions for converting time between formats and editing their values
+ */
+
+/**
+ * Converts ISO to fraction of day i.e. 12:00 -> 0.5f
+ */
+fun isoToFloatTime(iso: String) : Float
 {
     return (LocalDateTime.parse(iso).hour + LocalDateTime.parse(iso).minute.toFloat() / 60) / 24
 }
 
-public fun IsoTimeString(iso: String): String
+/**
+ * Converts ISO to hh:mm
+ */
+fun isoTimeString(iso: String): String
 {
-    try {
-//        return (LocalDateTime.parse(iso).hour.toString() + ":" + LocalDateTime.parse(iso).minute.toString())
-        return String.format("%02d:%02d", LocalDateTime.parse(iso).hour, LocalDateTime.parse(iso).minute)
+    return try {
+        String.format(Locale.ENGLISH,"%02d:%02d", LocalDateTime.parse(iso).hour, LocalDateTime.parse(iso).minute)
     }
     catch (e: DateTimeParseException)
     {
-        return "00:00"
+        "00:00"
     }
 }
 
-public fun printFloatTime(time: Float): String
+/**
+ * returns fraction of day as hh:mm
+ */
+fun printFloatTime(time: Float): String
 {
-    val time = ChangeTime(time, LocalDateTime.now())
-    return String.format("%02d:%02d", time.hour, time.minute)
+    val convertedTime = changeTime(time, LocalDateTime.now())
+    return String.format(Locale.ENGLISH,"%02d:%02d", convertedTime.hour, convertedTime.minute)
 
 }
 
-public fun ChangeTime(floatTime: Float, currentTime: LocalDateTime) : LocalDateTime
+/**
+ * returns currentTime with hours and minutes changed according to day fraction
+ */
+fun changeTime(floatTime: Float, currentTime: LocalDateTime) : LocalDateTime
 {
     var minutes = (floatTime * 24 - (floatTime * 24).toInt()) * 60
     var hours = (floatTime * 24).toInt()
@@ -41,39 +60,45 @@ public fun ChangeTime(floatTime: Float, currentTime: LocalDateTime) : LocalDateT
 
 }
 
-public fun ChangeDate(value: Int, type: String, currentDate: LocalDateTime) : LocalDateTime
+/**
+ * Changes date of currentDate
+ */
+fun changeDate(value: Int, type: String, currentDate: LocalDateTime) : LocalDateTime
 {
-    if(type == "year")
-    {
-        return currentDate.withYear(value)
-    }
-    else if(type == "month")
-    {
-        if(value > 12 || value < 1)
-        {
-            return currentDate
+    when (type) {
+        "year" -> {
+            return currentDate.withYear(value)
         }
-        return currentDate.withMonth(value)
-    }
-    else
-    {
-        if(value > currentDate.month.length(false) || value < 1)
-        {
-            return currentDate
+        "month" -> {
+            if(value > 12 || value < 1) {
+                return currentDate
+            }
+            return currentDate.withMonth(value)
         }
-        return currentDate.withDayOfMonth(value)
+        else -> {
+            if(value > currentDate.month.length(false) || value < 1) {
+                return currentDate
+            }
+            return currentDate.withDayOfMonth(value)
+        }
     }
 }
 
-public fun fullTimeFromIso(start: String, end: String): MeetingTime
+/**
+ * Converts ISO to MeetingTime class format
+ */
+fun fullTimeFromIso(start: String, end: String): MeetingTime
 {
-    val floatStart = IsoToFloatTime(start)
-    val floatEnd = IsoToFloatTime(end)
+    val floatStart = isoToFloatTime(start)
+    val floatEnd = isoToFloatTime(end)
     val date = LocalDateTime.parse(start)
     return MeetingTime(floatStart, floatEnd, false, date.year, date.month.value, date.dayOfMonth)
 }
 
-public fun printISO(iso: String): String
+/**
+ * Formats ISO to good looking string
+ */
+fun printISO(iso: String): String
 {
     return LocalDateTime.parse(iso).format(DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm"))
 }

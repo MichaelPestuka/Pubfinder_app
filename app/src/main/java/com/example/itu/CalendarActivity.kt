@@ -174,7 +174,7 @@ fun CalendarColumn(modifier: Modifier = Modifier, viewModel: CalendarViewModel, 
                     .weight(1f)
                     .fillMaxSize(1f)
                     .clickable {
-                        viewModel.createDayItem(1, day.toInt(), number / 24f, (number + 1) / 24f)
+                        viewModel.createDayItem(day.toInt(), number / 24f, (number + 1) / 24f)
                     }
                 )
 

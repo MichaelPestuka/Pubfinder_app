@@ -44,7 +44,6 @@ abstract class BaseViewmodel : ViewModel() {
         inputStreamReader.close()
         inputSystem.close()
 
-        Log.d("ret", parsedData.toString())
         return parsedData
     }
 

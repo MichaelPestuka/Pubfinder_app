@@ -76,7 +76,7 @@ import kotlin.math.min
  * Activity for editing meetings
  */
 class MeetingActivity : ComponentActivity() {
-    val viewModel: MeetingViewmodel by viewModels()
+    private val viewModel: MeetingViewmodel by viewModels()
 
     @OptIn(ExperimentalMaterial3Api::class)
 
@@ -106,20 +106,19 @@ class MeetingActivity : ComponentActivity() {
                 ) { innerPadding ->
                     Column(modifier = Modifier.padding(innerPadding))
                     {
-                        MeeetingEditor(viewModel = viewModel)
+                        MeetingEditor(viewModel = viewModel)
                     }
-
                 }
-
-
             }
         }
     }
 }
 
+/**
+ * Meeting editor component
+ */
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun MeeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
+fun MeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
     Column(modifier = Modifier.verticalScroll(rememberScrollState()).height(1400.dp)
     ) {
@@ -137,10 +136,15 @@ fun MeeetingEditor(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     }
 }
 
+/**
+ * Component that lists users and allows filtering and adding/removing from meetings
+ */
 @Composable
 fun UserSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Filtering search with name
     var nameFilter by remember { mutableStateOf("") }
     Card(modifier = modifier.fillMaxWidth(1f).height(500.dp))
     {
@@ -150,7 +154,7 @@ fun UserSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
             var filteredUsers = uiState.value.users
             if(nameFilter != "")
             {
-                filteredUsers = uiState.value.users.filter { it.username.toLowerCase().contains(nameFilter.toLowerCase()) }.toTypedArray()
+                filteredUsers = uiState.value.users.filter { it.username.lowercase().contains(nameFilter.lowercase()) }.toMutableList()
             }
             items(filteredUsers)
             { user ->
@@ -169,6 +173,9 @@ fun UserSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     }
 }
 
+/**
+ * Sliding bar meeting time selector
+ */
 @Composable
 fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
@@ -188,14 +195,24 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
             VerticalDivider()
         }
 
-        var rowWidth = 100
-        Row(modifier = Modifier
+        // Sliding bar selector
 
-            .onGloballyPositioned { rowWidth = it.size.width })
+        var rowWidth by remember { mutableFloatStateOf(100f) }
+
+
+
+        Row(modifier = Modifier
+            .onGloballyPositioned { rowWidth = it.size.width.toFloat() })
         {
             var offsetLeft by remember { mutableFloatStateOf(0f) }
             var offsetRight by remember { mutableFloatStateOf(500f) }
             var itemSize by remember { mutableFloatStateOf(0f) }
+
+            if (!uiState.value.meetingTime.editedTime) {
+                offsetLeft = rowWidth * uiState.value.meetingTime.start
+                offsetRight = rowWidth * uiState.value.meetingTime.end
+                itemSize = offsetRight - offsetLeft
+            }
             Spacer(modifier = Modifier.width(offsetLeft.dp / getSystem().displayMetrics.density)
                 .onGloballyPositioned {
                     if (!uiState.value.meetingTime.editedTime) {
@@ -203,8 +220,8 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
                         offsetRight = rowWidth * uiState.value.meetingTime.end
                         itemSize = offsetRight - offsetLeft
                     }
-
                 })
+            // Left sliding bar
             VerticalDivider(modifier
                 .draggable(
                     orientation = Orientation.Horizontal,
@@ -213,8 +230,10 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
                         itemSize = offsetRight - offsetLeft
                         uiState.value.meetingTime.editedTime = true
                     },
-                    onDragStopped = { viewModel.changeTime(offsetLeft / rowWidth, "start") }
+                    onDragStopped = { viewModel.setNewTime(offsetLeft / rowWidth, "start") }
                 ), 6.dp, Color.Gray)
+
+            // Sliding bar body
             Card(modifier = Modifier
                 .width(abs(offsetRight - offsetLeft).dp / getSystem().displayMetrics.density)
                 .fillMaxHeight(1f)
@@ -227,8 +246,8 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
                         uiState.value.meetingTime.editedTime = true
                     },
                     onDragStopped = {
-                        viewModel.changeTime(offsetLeft / rowWidth, "start")
-                        viewModel.changeTime(offsetRight / rowWidth, "end")
+                        viewModel.setNewTime(offsetLeft / rowWidth, "start")
+                        viewModel.setNewTime(offsetRight / rowWidth, "end")
                     }
                 )
                 .alpha(0.5f),
@@ -241,6 +260,7 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 //                Text(text = (ChangeTime((offsetRight / 8) / rowWidth, LocalDateTime.now()).format(
 //                    DateTimeFormatter.ofPattern("HH:mm"))).toString())
             }
+            // Left Sliding bar
             VerticalDivider(modifier
                 .draggable(
                     orientation = Orientation.Horizontal,
@@ -250,35 +270,40 @@ fun TimeSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
                         uiState.value.meetingTime.editedTime = true
                     },
                     onDragStopped = {
-                        viewModel.changeTime(offsetRight / rowWidth, "end")
+                        viewModel.setNewTime(offsetRight / rowWidth, "end")
                     }
                 ), 6.dp, Color.Gray)
             Spacer(modifier = Modifier.weight(1f))
         }
     }
+    // Time display and find time button
     Row()
     {
         Spacer(Modifier.weight(1f))
 
-        Text(text = IsoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center)
+        Text(text = isoTimeString(uiState.value.meetingData.begin), textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
         Button(onClick = { viewModel.findTime() }) { Text("Find Time") }
         Spacer(Modifier.weight(1f))
-        Text(text = IsoTimeString(uiState.value.meetingData.end))
+        Text(text = isoTimeString(uiState.value.meetingData.end))
         Spacer(Modifier.weight(1f))
 
     }
 
 }
 
+/**
+ * Year, month and date time selector
+ */
 @Composable
 fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Year selector
     Row()
     {
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year - 1, "year")},
+        Button(onClick = {viewModel.setNewDate(uiState.value.meetingTime.year - 1, "year")},
             modifier = Modifier.weight(1f)
         )
         {
@@ -288,32 +313,36 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f),
         )
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.year + 1, "year")},
+        Button(onClick = {viewModel.setNewDate(uiState.value.meetingTime.year + 1, "year")},
             modifier = Modifier.weight(1f)
         )
         {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
+
+    // Month selector
     Row()
     {
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month - 1, "month")},
+        Button(onClick = {viewModel.setNewDate(uiState.value.meetingTime.month - 1, "month")},
             modifier = Modifier.weight(1f))
         {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
         }
-        Text(Month.of(uiState.value.meetingTime.month.toInt()).getDisplayName(TextStyle.FULL, Locale.US),
+        Text(Month.of(uiState.value.meetingTime.month).getDisplayName(TextStyle.FULL, Locale.US),
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f))
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.month + 1, "month")},
+        Button(onClick = {viewModel.setNewDate(uiState.value.meetingTime.month + 1, "month")},
             modifier = Modifier.weight(1f))
         {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
+
+    // Day Selector
     Row()
     {
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day - 1, "day")},
+        Button(onClick = {viewModel.setNewDate(uiState.value.meetingTime.day - 1, "day")},
             modifier = Modifier.weight(1f))
         {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = null)
@@ -321,7 +350,7 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
         Text(uiState.value.meetingTime.day.toString(),
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f))
-        Button(onClick = {viewModel.changeDate(uiState.value.meetingTime.day + 1, "day")},
+        Button(onClick = {viewModel.setNewDate(uiState.value.meetingTime.day + 1, "day")},
             modifier = Modifier.weight(1f))
         {
             Icon(imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
@@ -329,10 +358,15 @@ fun DateSelect(modifier: Modifier, viewModel: MeetingViewmodel)
     }
 }
 
+/**
+ * List of pubs listing name, address, beers and recommended and selected states
+ */
 @Composable
 fun PubSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Filter by name and address
     var nameFilter by remember { mutableStateOf("") }
     TextField(value = nameFilter, onValueChange = {nameFilter = it}, label = {Text("Search")}, modifier = Modifier.fillMaxWidth(1f))
 
@@ -340,9 +374,11 @@ fun PubSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
     var allPubs = uiState.value.pubData
     if(nameFilter != "")
     {
-        bestPubs = bestPubs.filter { (it.name.toLowerCase() + it.address).contains(nameFilter.toLowerCase()) }.toTypedArray()
-        allPubs = allPubs.filter {  (it.name.toLowerCase() + it.address).contains(nameFilter.toLowerCase()) }.toTypedArray()
+        bestPubs = bestPubs.filter { (it.name.lowercase() + it.address).contains(nameFilter.lowercase()) }.toMutableList()
+        allPubs = allPubs.filter {  (it.name.lowercase() + it.address).contains(nameFilter.lowercase()) }.toMutableList()
     }
+
+    // List pubs, best ones go first
     LazyRow(modifier = Modifier.height(500.dp))
     {
         items(bestPubs)
@@ -361,6 +397,9 @@ fun PubSelector(modifier: Modifier = Modifier, viewModel: MeetingViewmodel)
 
 }
 
+/**
+ * Card showing one pub info
+ */
 @Composable
 fun PubCard(modifier: Modifier = Modifier, viewModel: MeetingViewmodel, pub: Pub, recommended: Boolean)
 {
@@ -376,6 +415,7 @@ fun PubCard(modifier: Modifier = Modifier, viewModel: MeetingViewmodel, pub: Pub
                     Text(text = pub.address)
                 }
                 Spacer(Modifier.weight(1f))
+                // Recommended ones get a star
                 if (recommended) {
                     Icon(
                         imageVector = Icons.Outlined.Star,
@@ -392,11 +432,12 @@ fun PubCard(modifier: Modifier = Modifier, viewModel: MeetingViewmodel, pub: Pub
             for (beer in onTap) {
                 Text(beer.name + " " + beer.degree + "°")
             }
+
+            // Selected pub gets a checkmark
             if (uiState.value.meetingData.pub_id == pub.id) {
                 Spacer(Modifier.weight(1f))
                 Row()
                 {
-
                     Spacer(Modifier.weight(1f))
                     Icon(
                         imageVector = Icons.Outlined.Check,
